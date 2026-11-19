@@ -1,9 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 export const EMAIL_DOMAIN = import.meta.env.VITE_EMAIL_DOMAIN || 'sbh.bpsberau.id';
 
-export const supabase = createClient(SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
+// Fail loudly, not blank: if the build had no Supabase env vars, say so on screen.
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error(
+    'Konfigurasi Supabase belum ada. Setel VITE_SUPABASE_URL dan VITE_SUPABASE_KEY di ' +
+    'Vercel → Project → Settings → Environment Variables, lalu Redeploy.'
+  );
+}
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sbh2027-auth' },
 });
 

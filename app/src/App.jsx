@@ -11,13 +11,15 @@ import Kunjungan from './pages/ppl/Kunjungan';
 import Capture from './pages/ppl/Capture';
 import Status from './pages/ppl/Status';
 
-// PML and admin screens load only for those roles, so field phones download less.
+// Loaded only when needed, so a public visitor never downloads the authed app.
 const NksDetail = lazy(() => import('./pages/NksDetail'));
 const PmlHome = lazy(() => import('./pages/pml/Home'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const Review = lazy(() => import('./pages/admin/Review'));
 const Samples = lazy(() => import('./pages/admin/Samples'));
 const Users = lazy(() => import('./pages/admin/Users'));
+const Usulan = lazy(() => import('./pages/public/Usulan'));
+const Katalog = lazy(() => import('./pages/public/Katalog'));
 
 const ROUTES = {
   ppl: (
@@ -64,13 +66,19 @@ function Gate() {
   );
 }
 
+const pub = (el) => <Suspense fallback={<div className="boot"><div className="logo big">SBH</div><Loading /></div>}>{el}</Suspense>;
+
 export default function App() {
   return (
     <HashRouter>
       <ToastProvider>
-        <AuthProvider>
-          <Gate />
-        </AuthProvider>
+        <Routes>
+          {/* Public — no login */}
+          <Route path="/usulan" element={pub(<Usulan />)} />
+          <Route path="/katalog" element={pub(<Katalog />)} />
+          {/* Everything else is behind the login gate */}
+          <Route path="/*" element={<AuthProvider><Gate /></AuthProvider>} />
+        </Routes>
       </ToastProvider>
     </HashRouter>
   );

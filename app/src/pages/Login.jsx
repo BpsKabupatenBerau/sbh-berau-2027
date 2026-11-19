@@ -46,6 +46,11 @@ export default function Login() {
         </div>
 
         <button className="login-go" disabled={busy}>{busy ? <Spinner small /> : 'Masuk'}</button>
+        <div className="login-links">
+          <a href="#/usulan">Usulan Komoditas</a>
+          <span>·</span>
+          <a href="#/katalog">Katalog Komoditas</a>
+        </div>
         <div className="login-foot">Akun dibuat oleh admin. Lupa kata sandi? Hubungi admin SBH.</div>
       </form>
     </div>

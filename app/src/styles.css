@@ -335,6 +335,10 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--brand); cu
             display: flex; justify-content: center; } .login-go .spin-sm { border-color: var(--brand-l); border-top-color: var(--brand); }
 .login-err { background: #fff; color: var(--err); border-radius: 12px; padding: 11px 14px; font-size: 14px; font-weight: 600; margin-bottom: 14px; display: flex; gap: 10px; justify-content: space-between; align-items: center; }
 .login-foot { text-align: center; opacity: .8; font-size: 12px; margin-top: 22px; }
+.login-links { display: flex; gap: 10px; justify-content: center; margin-top: 16px; font-size: 13.5px; }
+.login-links a { color: #fff; text-decoration: underline; opacity: .92; }
+.login-links span { opacity: .6; }
+
 
 /* =====================================================================
    DESKTOP ≥ 960px
