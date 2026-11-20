@@ -121,7 +121,7 @@ export default function Users() {
     } catch (e) { toast(errMsg(e), 'err'); }
     setBusy(false);
   }
-  const exportCreds = (list) => downloadCsv(`akun-sbh-${new Date().toISOString().slice(0, 10)}.csv`,
+  const exportCreds = (list) => downloadCsv(`akun-spkrt-${new Date().toISOString().slice(0, 10)}.csv`,
     list.map((r) => ({ Nama: r.full_name ?? r.nama, Peran: (r.role ?? r.peran).toUpperCase(), Username: r.username, 'Kata Sandi': r.password ?? r.kata_sandi, Login: location.origin + location.pathname })));
 
   return (
@@ -207,7 +207,7 @@ export default function Users() {
             <div className="kv"><span>Username</span><b className="mono">{c.username}</b></div>
             <div className="kv"><span>Kata sandi</span><b className="mono">{c.kata_sandi}</b></div>
             <Button variant="ghost" icon="layers" className="mt" onClick={() => {
-              navigator.clipboard?.writeText(`Login SBH 2027\n${location.origin + location.pathname}\nUsername: ${c.username}\nKata sandi: ${c.kata_sandi}`);
+              navigator.clipboard?.writeText(`Login SPKRT 2027\n${location.origin + location.pathname}\nUsername: ${c.username}\nKata sandi: ${c.kata_sandi}`);
               toast('Disalin', 'ok');
             }}>Salin pesan login</Button>
           </Card>

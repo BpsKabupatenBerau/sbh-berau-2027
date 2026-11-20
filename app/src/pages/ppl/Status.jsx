@@ -2,12 +2,18 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, errMsg } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
-import { fmtDateTime } from '../../lib/week';
-import { queuedFor, onQueueChange } from '../../lib/uploads';
+import { fmtDateTime, periodTitle, monthLabel } from '../../lib/period';
+import { queuedFor, onQueueChange, KIND_LABEL } from '../../lib/uploads';
 import { Page, Card, Chip, Loading, Empty, Icon, SignedImg, useToast } from '../../components/ui';
 
-const KIND = { kunjungan: 'Kunjungan', surat_tugas: 'Surat Tugas', supervisi: 'Supervisi' };
 const TABS = [['all', 'Semua'], ['rejected', 'Ditolak'], ['pending', 'Menunggu'], ['approved', 'Disetujui']];
+
+function describe(u) {
+  if (u.kind === 'kunjungan' && u.period_month) return periodTitle({ year: u.period_year, month: u.period_month, part: u.period_part });
+  if ((u.kind === 'pengawasan' || u.kind === 'surat_tugas') && u.period_month) return monthLabel(u.period_year, u.period_month);
+  if (u.meta?.nomor_polisi) return u.meta.nomor_polisi;
+  return '';
+}
 
 export default function Status() {
   const { uid } = useAuth();
@@ -19,7 +25,7 @@ export default function Status() {
 
   async function load() {
     const [{ data, error }, { data: ruta }, qq] = await Promise.all([
-      supabase.from('uploads').select('*').eq('user_id', uid).order('updated_at', { ascending: false }).limit(200),
+      supabase.from('uploads').select('*').eq('user_id', uid).order('updated_at', { ascending: false }).limit(300),
       supabase.from('ruta').select('id, no_urut, nama_krt'),
       queuedFor(uid),
     ]);
@@ -31,12 +37,15 @@ export default function Status() {
   useEffect(() => { load(); return onQueueChange(load); }, []); // eslint-disable-line
 
   const list = (rows || []).filter((r) => tab === 'all' || r.status === tab)
-    .sort((a, b) => (b.status === 'rejected') - (a.status === 'rejected')); // rejected first, then newest
+    .sort((a, b) => (b.status === 'rejected') - (a.status === 'rejected'));
   const nBad = (rows || []).filter((r) => r.status === 'rejected').length;
 
   const open = (u) => {
-    if (u.kind === 'kunjungan') nav(`/kunjungan/${u.ruta_id}?y=${u.period_year}&w=${u.period_week}`);
-    else if (u.kind === 'surat_tugas') nav('/surat-tugas');
+    const pq = `y=${u.period_year}&m=${u.period_month}`;
+    if (u.kind === 'kunjungan') nav(`/pendataan/${u.ruta_id}?${pq}&p=${u.period_part}`);
+    else if (u.kind === 'pengawasan') nav(`/pengawasan/${u.ruta_id}?${pq}`);
+    else if (u.kind === 'surat_tugas') nav(`/surat-tugas?b=${u.period_year}-${u.period_month}`);
+    else if (u.kind === 'stnk' || u.kind === 'kendaraan') nav('/kendaraan');
   };
 
   return (
@@ -54,7 +63,7 @@ export default function Status() {
           {q.map((j) => (
             <div key={j.id} className="row static">
               <span className="num num-queued"><Icon name="wifi" size={16} /></span>
-              <span className="row-tx"><b>{j.label || KIND[j.kind]}</b><small>Disimpan {fmtDateTime(j.createdAt)}</small></span>
+              <span className="row-tx"><b>{j.label || KIND_LABEL[j.kind]}</b><small>Disimpan {fmtDateTime(j.createdAt)}</small></span>
               <Chip status="queued" />
             </div>
           ))}
@@ -69,8 +78,8 @@ export default function Status() {
             <button key={u.id} className="row" onClick={() => open(u)}>
               <SignedImg path={u.file_path} className="row-thumb" />
               <span className="row-tx">
-                <b>{u.kind === 'kunjungan' ? `Ruta ${u.ruta?.no_urut || ''} — ${u.ruta?.nama_krt || ''}` : KIND[u.kind]}</b>
-                <small>{u.kind === 'kunjungan' ? `Minggu ke-${u.period_week} · ` : ''}{fmtDateTime(u.updated_at)}</small>
+                <b>{u.ruta ? `${KIND_LABEL[u.kind]} · Ruta ${u.ruta.no_urut} ${u.ruta.nama_krt}` : KIND_LABEL[u.kind]}</b>
+                <small>{[describe(u), fmtDateTime(u.updated_at)].filter(Boolean).join(' · ')}</small>
                 {u.status === 'rejected' && u.review_note && <small className="t-err">Catatan: {u.review_note}</small>}
               </span>
               <Chip status={u.status} />

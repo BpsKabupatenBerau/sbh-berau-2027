@@ -1,14 +1,18 @@
 // Upload pipeline: storage file + submit_upload RPC, with an offline queue.
-// When there is no signal the photo is kept on the phone (IndexedDB) and sent
+// When there is no signal the file is kept on the phone (IndexedDB) and sent
 // automatically when the connection comes back.
-//
-// PHASE 2: photos move to their permanent store. Only putFile/removeFiles/signedUrl(s) change.
+// Photos live in Supabase Storage for now; only putFile/removeFiles/signedUrl(s) change if that moves.
 import { get, set } from 'idb-keyval';
 import { supabase } from './supabase';
 
 const BUCKET = 'uploads';
-const QKEY = 'sbh-queue-v1';
-const EVT = 'sbh-queue';
+const QKEY = 'spkrt-queue-v2';   // v1 (weekly trial) queue is intentionally not read
+const EVT = 'spkrt-queue';
+
+export const KIND_LABEL = {
+  kunjungan: 'Pendataan', pengawasan: 'Pengawasan', surat_tugas: 'Surat Tugas',
+  stnk: 'STNK', kendaraan: 'Foto Kendaraan', supervisi: 'Supervisi',
+};
 
 const rid = () => (crypto.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 10);
 const pad2 = (n) => String(n).padStart(2, '0');
@@ -17,21 +21,30 @@ export const isNetErr = (e) =>
 
 export function buildPath(uid, kind, meta, mime) {
   const ext = mime === 'application/pdf' ? 'pdf' : mime === 'image/png' ? 'png' : 'jpg';
-  if (kind === 'kunjungan') return `${uid}/kunjungan/${meta.year}-w${pad2(meta.week)}/${meta.nks}_${meta.no_urut}_${rid()}.${ext}`;
-  if (kind === 'supervisi') return `${uid}/supervisi/${meta.year}-w${pad2(meta.week)}/${meta.nks}_${rid()}.${ext}`;
+  const ym = meta.year ? `${meta.year}-${pad2(meta.month)}` : '';
+  if (kind === 'kunjungan') return `${uid}/pendataan/${ym}-p${meta.part}/${meta.nks}_${meta.no_urut}_${rid()}.${ext}`;
+  if (kind === 'pengawasan') return `${uid}/pengawasan/${ym}/${meta.nks}_${meta.no_urut}_${rid()}.${ext}`;
+  if (kind === 'surat_tugas') return `${uid}/surat_tugas/${ym}/${rid()}.${ext}`;
   return `${uid}/${kind}/${rid()}.${ext}`;
 }
 
-// ---------- storage primitives (swap these for the VPS in phase 2) ----------
+function jobKey(kind, m) {
+  if (kind === 'kunjungan') return `k:${m.ruta_id}:${m.year}:${m.month}:${m.part}`;
+  if (kind === 'pengawasan') return `w:${m.ruta_id}:${m.year}:${m.month}`;
+  if (kind === 'surat_tugas') return `st:${m.year}:${m.month}`;
+  return kind;
+}
+
+// ---------- storage primitives ----------
 async function putFile(path, blob, mime) {
   const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: mime, upsert: false });
-  if (error && !/exists|duplicate/i.test(error.message)) throw error; // already there = earlier partial retry
+  if (error && !/exists|duplicate/i.test(error.message)) throw error;
 }
 export async function removeFiles(paths) {
   const list = paths.filter(Boolean);
   if (list.length) await supabase.storage.from(BUCKET).remove(list);
 }
-const urlCache = new Map(); // path -> {url, exp}
+const urlCache = new Map();
 export async function signedUrl(path) {
   if (!path) return null;
   const c = urlCache.get(path);
@@ -51,13 +64,18 @@ export async function signedUrls(paths) {
   paths.forEach((p) => { if (p) out[p] = urlCache.get(p)?.url || null; });
   return out;
 }
+/** Upload a file to an explicit path (admin bulk uploads, e.g. Rekap BL). */
+export async function putRaw(path, blob, mime, upsert = true) {
+  const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: mime, upsert });
+  if (error) throw error;
+}
 
 // ---------- one send attempt ----------
 async function sendJob(job) {
   await putFile(job.path, job.blob, job.mime);
   const { data, error } = await supabase.rpc('submit_upload', job.args);
   if (error) {
-    if (!isNetErr(error)) await removeFiles([job.path]); // rejected by the server: clean up the orphan file
+    if (!isNetErr(error)) await removeFiles([job.path]);
     throw error;
   }
   if (data?.replaced_path) removeFiles([data.replaced_path]).catch(() => {});
@@ -66,21 +84,22 @@ async function sendJob(job) {
 
 /**
  * Submit a photo/scan.
- * kind: 'kunjungan' | 'surat_tugas' | 'supervisi'
- * meta: { ruta_id, nks, no_urut, year, week, lat, lng, acc, taken_at, label }
+ * kind: 'kunjungan' | 'pengawasan' | 'surat_tugas' | 'stnk' | 'kendaraan'
+ * meta: { ruta_id, nks, no_urut, year, month, part, lat, lng, acc, taken_at, label, extra }
  * Returns { upload } on success, { queued: true } when saved for later. Throws on server refusal.
  */
 export async function submitUpload({ uid, kind, blob, mime, meta = {} }) {
   const path = buildPath(uid, kind, meta, mime);
   const job = {
-    id: rid(), uid, kind, path, blob, mime, label: meta.label || '', createdAt: Date.now(),
-    key: kind === 'kunjungan' ? `${meta.ruta_id}:${meta.year}:${meta.week}` : kind,
+    id: rid(), uid, kind, path, blob, mime, label: meta.label || KIND_LABEL[kind], createdAt: Date.now(),
+    key: jobKey(kind, meta),
     args: {
       p_kind: kind, p_file_path: path,
-      p_ruta_id: meta.ruta_id ?? null, p_nks: meta.nks ?? null,
-      p_year: meta.year ?? null, p_week: meta.week ?? null,
+      p_ruta_id: meta.ruta_id ?? null,
+      p_year: meta.year ?? null, p_month: meta.month ?? null, p_part: meta.part ?? null,
       p_lat: meta.lat ?? null, p_lng: meta.lng ?? null, p_acc: meta.acc ?? null,
       p_taken_at: meta.taken_at ?? new Date().toISOString(), p_size: blob.size, p_mime: mime,
+      p_meta: meta.extra ?? null,
     },
   };
   if (!navigator.onLine) { await enqueue(job); return { queued: true }; }
@@ -97,7 +116,7 @@ async function readQ() { return (await get(QKEY)) || []; }
 async function writeQ(q) { await set(QKEY, q); window.dispatchEvent(new Event(EVT)); }
 
 async function enqueue(job) {
-  const q = (await readQ()).filter((j) => !(j.uid === job.uid && j.key === job.key && job.kind !== 'supervisi'));
+  const q = (await readQ()).filter((j) => !(j.uid === job.uid && j.key === job.key));
   q.push(job);
   await writeQ(q);
 }
@@ -105,7 +124,6 @@ async function enqueue(job) {
 export async function queuedFor(uid) { return (await readQ()).filter((j) => j.uid === uid); }
 
 let flushing = false;
-/** Try to send everything queued for this user. Returns {sent, failed:[{label,error}]}. */
 export async function flushQueue(uid) {
   if (flushing || !navigator.onLine) return { sent: 0, failed: [] };
   flushing = true;
@@ -117,9 +135,9 @@ export async function flushQueue(uid) {
         sent++;
         await writeQ((await readQ()).filter((j) => j.id !== job.id));
       } catch (e) {
-        if (isNetErr(e)) break; // still offline: stop, keep the rest
+        if (isNetErr(e)) break;
         failed.push({ label: job.label, error: e.message });
-        await writeQ((await readQ()).filter((j) => j.id !== job.id)); // server said no: drop it
+        await writeQ((await readQ()).filter((j) => j.id !== job.id));
       }
     }
   } finally { flushing = false; }

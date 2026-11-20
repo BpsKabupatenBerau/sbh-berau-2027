@@ -3,7 +3,7 @@ import { supabase, errMsg } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { queuedFor } from '../lib/uploads';
 import { Page, Card, Button, useToast, Icon } from '../components/ui';
-import { roleLabel } from '../components/Shell';
+import { roleLabel, APP_NAME } from '../components/Shell';
 
 export default function Account() {
   const { profile, signOut, uid } = useAuth();
@@ -26,7 +26,7 @@ export default function Account() {
 
   async function logout() {
     const q = await queuedFor(uid);
-    if (q.length && !window.confirm(`${q.length} foto belum terkirim dan tersimpan di HP ini. Tetap keluar? Foto akan dikirim saat Anda login lagi di HP ini.`)) return;
+    if (q.length && !window.confirm(`${q.length} berkas belum terkirim dan tersimpan di HP ini. Tetap keluar? Foto akan dikirim saat Anda login lagi di HP ini.`)) return;
     signOut();
   }
 
@@ -39,6 +39,7 @@ export default function Account() {
         <div className="kv"><span>No. HP</span><b>{profile.phone || '—'}</b></div>
       </Card>
 
+      {profile.role === 'admin' && <>
       <h2 className="sec">Ganti kata sandi</h2>
       <Card className="pad">
         <form onSubmit={changePw} className="form">
@@ -47,9 +48,11 @@ export default function Account() {
           <Button busy={busy} icon="key">Simpan kata sandi</Button>
         </form>
       </Card>
+      </>}
+      {profile.role !== 'admin' && <p className="hint">Lupa atau ingin ganti kata sandi? Hubungi admin SPKRT.</p>}
 
       <Button variant="ghost" icon="logout" className="mt" onClick={logout}>Keluar</Button>
-      <p className="hint center"><Icon name="shield" size={14} /> SBH 2027 · BPS Kabupaten Berau</p>
+      <p className="hint center"><Icon name="shield" size={14} /> {APP_NAME} · BPS Kabupaten Berau</p>
     </Page>
   );
 }

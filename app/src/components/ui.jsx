@@ -27,6 +27,15 @@ const P = {
   edit: 'M4 20h4L19 9l-4-4L4 16z',
   layers: 'M12 3l9 5-9 5-9-5z|M3 13l9 5 9-5',
   alert: 'M12 3l10 18H2z|M12 10v5|C12,18,.6',
+  car: 'M5 17h14|M5 17v-5l2-5h10l2 5v5|C7.5,17,1.8|C16.5,17,1.8|M4 12h16',
+  scan: 'M4 8V5a1 1 0 0 1 1-1h3|M16 4h3a1 1 0 0 1 1 1v3|M20 16v3a1 1 0 0 1-1 1h-3|M8 20H5a1 1 0 0 1-1-1v-3|M7 12h10',
+  inbox: 'M3 13l3-8h12l3 8|M3 13v6a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-6|M3 13h5l1 3h6l1-3h5',
+  coins: 'C9,8,5|M15 9.5a5 5 0 1 1-5.5 8',
+  list: 'M8 6h13|M8 12h13|M8 18h13|C4,6,.8|C4,12,.8|C4,18,.8',
+  send: 'M22 2L11 13|M22 2l-7 20-4-9-9-4z',
+  menu: 'M4 6h16|M4 12h16|M4 18h16',
+  db: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z|M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6|M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
+  login: 'M10 17l5-5-5-5|M15 12H3|M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4',
 };
 export function Icon({ name, size = 20, className = '' }) {
   const parts = (P[name] || '').split('|');
@@ -173,13 +182,13 @@ export function Page({ title, subtitle, back, actions, children, wide }) {
   );
 }
 
-export function WeekPicker({ value, onChange, max, label, range }) {
-  const atMax = max && value.year === max.year && value.week === max.week;
+export function PeriodPicker({ value, onChange, max, label, range }) {
+  const atMax = max && value.year === max.year && value.month === max.month && (value.part || 0) === (max.part || 0);
   return (
     <div className="weekpick">
-      <button className="icon-btn soft" onClick={() => onChange(-1)} aria-label="Minggu sebelumnya"><Icon name="left" /></button>
+      <button className="icon-btn soft" onClick={() => onChange(-1)} aria-label="Periode sebelumnya"><Icon name="left" /></button>
       <div className="weekpick-mid"><b>{label}</b><span>{range}</span></div>
-      <button className="icon-btn soft" onClick={() => onChange(1)} disabled={atMax} aria-label="Minggu berikutnya"><Icon name="right" /></button>
+      <button className="icon-btn soft" onClick={() => onChange(1)} disabled={atMax} aria-label="Periode berikutnya"><Icon name="right" /></button>
     </div>
   );
 }

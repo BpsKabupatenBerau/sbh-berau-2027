@@ -23,8 +23,8 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login" onSubmit={submit} autoComplete="on">
-        <div className="login-mark">SBH</div>
-        <h1>Survei Biaya Hidup 2027</h1>
+        <div className="login-mark">SPKRT</div>
+        <h1>SPKRT 2027</h1>
         <p className="login-sub">BPS Kabupaten Berau</p>
 
         {(problem && session) ? (
@@ -47,11 +47,9 @@ export default function Login() {
 
         <button className="login-go" disabled={busy}>{busy ? <Spinner small /> : 'Masuk'}</button>
         <div className="login-links">
-          <a href="#/usulan">Usulan Komoditas</a>
-          <span>·</span>
-          <a href="#/katalog">Katalog Komoditas</a>
+          <a href="#/katalog">Katalog Komoditas &amp; Kualitas</a>
         </div>
-        <div className="login-foot">Akun dibuat oleh admin. Lupa kata sandi? Hubungi admin SBH.</div>
+        <div className="login-foot">Akun dibuat oleh admin. Lupa kata sandi? Hubungi admin SPKRT.</div>
       </form>
     </div>
   );

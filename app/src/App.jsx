@@ -5,37 +5,46 @@ import { ToastProvider, Loading } from './components/ui';
 import Shell from './components/Shell';
 import Login from './pages/Login';
 import Account from './pages/Account';
-import SuratTugas from './pages/SuratTugas';
 import PplHome from './pages/ppl/Home';
-import Kunjungan from './pages/ppl/Kunjungan';
-import Capture from './pages/ppl/Capture';
 import Status from './pages/ppl/Status';
+import RutaList from './pages/field/RutaList';
+import Capture from './pages/field/Capture';
+import SuratTugas from './pages/field/SuratTugas';
+import Kendaraan from './pages/field/Kendaraan';
 
 // Loaded only when needed, so a public visitor never downloads the authed app.
 const NksDetail = lazy(() => import('./pages/NksDetail'));
 const PmlHome = lazy(() => import('./pages/pml/Home'));
+const PmlUsulan = lazy(() => import('./pages/pml/Usulan'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const Review = lazy(() => import('./pages/admin/Review'));
 const Samples = lazy(() => import('./pages/admin/Samples'));
 const Users = lazy(() => import('./pages/admin/Users'));
-const Usulan = lazy(() => import('./pages/public/Usulan'));
+const SuratNomor = lazy(() => import('./pages/admin/SuratNomor'));
+const UsulanMasuk = lazy(() => import('./pages/admin/UsulanMasuk'));
+const Master = lazy(() => import('./pages/admin/Master'));
 const Katalog = lazy(() => import('./pages/public/Katalog'));
 
 const ROUTES = {
   ppl: (
     <>
       <Route path="/" element={<PplHome />} />
-      <Route path="/kunjungan" element={<Kunjungan />} />
-      <Route path="/kunjungan/:id" element={<Capture />} />
+      <Route path="/pendataan" element={<RutaList kind="kunjungan" />} />
+      <Route path="/pendataan/:id" element={<Capture kind="kunjungan" />} />
       <Route path="/status" element={<Status />} />
       <Route path="/surat-tugas" element={<SuratTugas />} />
+      <Route path="/kendaraan" element={<Kendaraan />} />
     </>
   ),
   pml: (
     <>
       <Route path="/" element={<PmlHome />} />
+      <Route path="/pengawasan" element={<RutaList kind="pengawasan" />} />
+      <Route path="/pengawasan/:id" element={<Capture kind="pengawasan" />} />
       <Route path="/nks/:nks" element={<NksDetail />} />
+      <Route path="/usulan" element={<PmlUsulan />} />
       <Route path="/surat-tugas" element={<SuratTugas />} />
+      <Route path="/kendaraan" element={<Kendaraan />} />
     </>
   ),
   admin: (
@@ -45,13 +54,16 @@ const ROUTES = {
       <Route path="/verifikasi" element={<Review />} />
       <Route path="/sampel" element={<Samples />} />
       <Route path="/pengguna" element={<Users />} />
+      <Route path="/surat-nomor" element={<SuratNomor />} />
+      <Route path="/usulan-masuk" element={<UsulanMasuk />} />
+      <Route path="/master" element={<Master />} />
     </>
   ),
 };
 
 function Gate() {
   const { session, profile, loading } = useAuth();
-  if (loading) return <div className="boot"><div className="logo big">SBH</div><Loading /></div>;
+  if (loading) return <div className="boot"><div className="logo big">SPKRT</div><Loading /></div>;
   if (!session || !profile) return <Login />;
   return (
     <Shell>
@@ -66,7 +78,7 @@ function Gate() {
   );
 }
 
-const pub = (el) => <Suspense fallback={<div className="boot"><div className="logo big">SBH</div><Loading /></div>}>{el}</Suspense>;
+const pub = (el) => <Suspense fallback={<div className="boot"><div className="logo big">SPKRT</div><Loading /></div>}>{el}</Suspense>;
 
 export default function App() {
   return (
@@ -74,7 +86,6 @@ export default function App() {
       <ToastProvider>
         <Routes>
           {/* Public — no login */}
-          <Route path="/usulan" element={pub(<Usulan />)} />
           <Route path="/katalog" element={pub(<Katalog />)} />
           {/* Everything else is behind the login gate */}
           <Route path="/*" element={<AuthProvider><Gate /></AuthProvider>} />

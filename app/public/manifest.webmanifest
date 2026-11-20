@@ -1,7 +1,7 @@
 {
-  "name": "SBH 2027 · BPS Kabupaten Berau",
-  "short_name": "SBH 2027",
-  "description": "Manajemen lapangan Survei Biaya Hidup 2027",
+  "name": "SPKRT 2027 · BPS Kabupaten Berau",
+  "short_name": "SPKRT 2027",
+  "description": "Manajemen lapangan SPKRT 2027",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

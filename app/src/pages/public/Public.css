@@ -4,7 +4,8 @@
 .pub-top .logo { flex: none; }
 .pub-top b { font-size: 15px; display: block; } .pub-top small { opacity: .85; font-size: 12px; }
 .pub-top .sp { flex: 1; }
-.pub-top a { color: #fff; text-decoration: none; font-size: 13.5px; font-weight: 600; background: rgba(255,255,255,.15); padding: 7px 12px; border-radius: 9px; }
+.pub-top a { color: #fff; text-decoration: none; font-size: 13.5px; font-weight: 700; background: rgba(255,255,255,.15); padding: 8px 14px; border-radius: 10px; display: inline-flex; gap: 6px; align-items: center; }
+.pub-top a.pub-login { background: #fff; color: var(--brand-d); }
 .pub-wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
 .pub-wrap.wide { max-width: 1000px; }
 .pub h1 { font-size: 20px; margin: 4px 2px 2px; }
@@ -52,3 +53,4 @@
 .pub .fld .req { color: var(--err); }
 .pub .combo input, .pub .fld > input { width: 100%; }
 .pub .search input { color: var(--ink); }
+.search-x { border: 0; background: var(--line-2, #eef2f6); color: var(--muted); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; flex: none; }
