@@ -17,17 +17,31 @@ export const NAV = {
     { to: '/', icon: 'home', label: 'Beranda', end: true },
     { to: '/pengawasan', icon: 'shield', label: 'Pengawasan' },
     { to: '/usulan', icon: 'send', label: 'Usulan' },
+    { to: '/rekap-bl', icon: 'layers', label: 'Rekap BL' },
+    { to: '/akun', icon: 'user', label: 'Akun' },
+  ],
+  pengolahan: [
+    { to: '/entri', icon: 'list', label: 'Entri' },
+    { to: '/penerimaan', icon: 'inbox', label: 'Penerimaan' },
+    { to: '/batching', icon: 'layers', label: 'Batching' },
+    { to: '/fasih', icon: 'db', label: 'FASIH' },
     { to: '/akun', icon: 'user', label: 'Akun' },
   ],
   admin: [
-    { to: '/', icon: 'grid', label: 'Dashboard', end: true },
+    { to: '/', icon: 'grid', label: 'Dashboard', end: true, sec: 'Lapangan' },
     { to: '/verifikasi', icon: 'shield', label: 'Verifikasi' },
     { to: '/sampel', icon: 'map', label: 'Sampel' },
     { to: '/pengguna', icon: 'users', label: 'Pengguna' },
     { to: '/surat-nomor', icon: 'file', label: 'Nomor Surat' },
+    { to: '/rekap-bl', icon: 'layers', label: 'Rekap BL' },
     { to: '/usulan-masuk', icon: 'send', label: 'Usulan' },
     { to: '/master', icon: 'db', label: 'Master Komoditas' },
-    { to: '/akun', icon: 'user', label: 'Akun' },
+    { to: '/penerimaan', icon: 'inbox', label: 'Penerimaan', sec: 'Pengolahan' },
+    { to: '/batching', icon: 'layers', label: 'Batching' },
+    { to: '/entri', icon: 'list', label: 'Entri' },
+    { to: '/fasih', icon: 'db', label: 'FASIH' },
+    { to: '/honor', icon: 'coins', label: 'Honor', sec: 'Keuangan' },
+    { to: '/akun', icon: 'user', label: 'Akun', sec: ' ' },
   ],
 };
 const ROLE_LABEL = { ppl: 'PPL · Pendata', pml: 'PML · Pengawas', admin: 'Admin', pengolahan: 'Pengolahan' };
@@ -99,11 +113,12 @@ export default function Shell({ children }) {
           <div><b>{APP_NAME}</b><small>BPS Kabupaten Berau</small></div>
         </div>
         <nav className="sb-nav">
-          {items.map((it) => (
+          {items.map((it) => [
+            it.sec && <div key={`s-${it.to}`} className="sb-sec">{it.sec}</div>,
             <NavLink key={it.to} to={it.to} end={it.end} className={({ isActive }) => (isActive ? 'on' : '')}>
               <Icon name={it.icon} /> {it.label}
-            </NavLink>
-          ))}
+            </NavLink>,
+          ])}
         </nav>
         <div className="sb-user">
           <div className="avatar">{initials}</div>

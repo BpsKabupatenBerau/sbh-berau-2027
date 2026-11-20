@@ -74,3 +74,12 @@ export const fmtDateTime = (v) => v ? new Date(v).toLocaleString('id-ID', {
 export const fmtDate = (v) => v ? new Date(v).toLocaleDateString('id-ID', {
   day: '2-digit', month: 'short', year: 'numeric',
 }) : '—';
+
+// ---- month helpers (office pages: receiving, batching, FASIH, honor) ----
+export const ymNow = () => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() + 1 }; };
+export function shiftYm({ year, month }, delta) {
+  const t = year * 12 + (month - 1) + delta;
+  return { year: Math.floor(t / 12), month: (t % 12) + 1 };
+}
+export const triwulanOf = (month) => Math.ceil(month / 3);
+export const TRIWULAN = ['I', 'II', 'III', 'IV'];

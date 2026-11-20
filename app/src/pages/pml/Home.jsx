@@ -79,9 +79,10 @@ export default function PmlHome() {
           <div className="task-tx"><b>Kendaraan</b><span>STNK &amp; foto kendaraan</span></div>
           {side && <Chip status={pairStatus(side.v.stnk, side.v.kendaraan)} />}
         </Card>
-        <Card className="task disabled">
+        <Card className="task" onClick={() => nav('/rekap-bl')}>
           <div className="task-ic"><Icon name="layers" size={24} /></div>
-          <div className="task-tx"><b>Rekap BL</b><span>Segera hadir</span></div>
+          <div className="task-tx"><b>Rekap BL</b><span>Periksa rekap BL per triwulan</span></div>
+          <Icon name="right" className="task-arw" />
         </Card>
       </div>
     </Page>

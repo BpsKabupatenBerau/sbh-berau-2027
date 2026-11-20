@@ -24,6 +24,14 @@ const SuratNomor = lazy(() => import('./pages/admin/SuratNomor'));
 const UsulanMasuk = lazy(() => import('./pages/admin/UsulanMasuk'));
 const Master = lazy(() => import('./pages/admin/Master'));
 const Katalog = lazy(() => import('./pages/public/Katalog'));
+const AdminRekapBL = lazy(() => import('./pages/admin/RekapBL'));
+const PmlRekapBL = lazy(() => import('./pages/pml/RekapBL'));
+const Penerimaan = lazy(() => import('./pages/office/Penerimaan'));
+const Batching = lazy(() => import('./pages/office/Batching'));
+const Entri = lazy(() => import('./pages/office/Entri'));
+const Fasih = lazy(() => import('./pages/admin/Fasih'));
+const Honor = lazy(() => import('./pages/admin/Honor'));
+const HonorDetail = lazy(() => import('./pages/admin/HonorDetail'));
 
 const ROUTES = {
   ppl: (
@@ -43,6 +51,7 @@ const ROUTES = {
       <Route path="/pengawasan/:id" element={<Capture kind="pengawasan" />} />
       <Route path="/nks/:nks" element={<NksDetail />} />
       <Route path="/usulan" element={<PmlUsulan />} />
+      <Route path="/rekap-bl" element={<PmlRekapBL />} />
       <Route path="/surat-tugas" element={<SuratTugas />} />
       <Route path="/kendaraan" element={<Kendaraan />} />
     </>
@@ -57,6 +66,22 @@ const ROUTES = {
       <Route path="/surat-nomor" element={<SuratNomor />} />
       <Route path="/usulan-masuk" element={<UsulanMasuk />} />
       <Route path="/master" element={<Master />} />
+      <Route path="/rekap-bl" element={<AdminRekapBL />} />
+      <Route path="/penerimaan" element={<Penerimaan />} />
+      <Route path="/batching" element={<Batching />} />
+      <Route path="/entri" element={<Entri />} />
+      <Route path="/fasih" element={<Fasih />} />
+      <Route path="/honor" element={<Honor />} />
+      <Route path="/honor/:id" element={<HonorDetail />} />
+    </>
+  ),
+  pengolahan: (
+    <>
+      <Route path="/" element={<Navigate to="/entri" replace />} />
+      <Route path="/entri" element={<Entri />} />
+      <Route path="/penerimaan" element={<Penerimaan />} />
+      <Route path="/batching" element={<Batching />} />
+      <Route path="/fasih" element={<Fasih />} />
     </>
   ),
 };

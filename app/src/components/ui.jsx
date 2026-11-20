@@ -192,3 +192,16 @@ export function PeriodPicker({ value, onChange, max, label, range }) {
     </div>
   );
 }
+
+/** Month stepper used by office pages. value = { year, month } */
+export function MonthPicker({ value, onChange, label }) {
+  const BULAN_FULL = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const step = (d) => { const t = value.year * 12 + value.month - 1 + d; onChange({ year: Math.floor(t / 12), month: (t % 12) + 1 }); };
+  return (
+    <div className="weekpick monthpick">
+      <button className="icon-btn soft" onClick={() => step(-1)} aria-label="Bulan sebelumnya"><Icon name="left" /></button>
+      <div className="weekpick-mid"><b>{BULAN_FULL[value.month - 1]} {value.year}</b>{label && <span>{label}</span>}</div>
+      <button className="icon-btn soft" onClick={() => step(1)} aria-label="Bulan berikutnya"><Icon name="right" /></button>
+    </div>
+  );
+}

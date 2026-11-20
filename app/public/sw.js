@@ -1,6 +1,6 @@
 // SPKRT 2027 service worker: caches the app shell only (HTML/JS/CSS/icons).
 // API calls, photos and login always go to the network.
-const CACHE = 'spkrt-shell-v2';
+const CACHE = 'spkrt-shell-v3';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest'])).then(() => self.skipWaiting()));

@@ -14,7 +14,7 @@ export const suggestUsername = (name) => {
   const w = String(name || '').toLowerCase().replace(/\(.*?\)/g, ' ').replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
   return (w.length > 1 ? `${w[0]}.${w[1]}` : w[0] || '').slice(0, 32);
 };
-const ROLE_ALIASES = { ppl: 'ppl', pendata: 'ppl', pml: 'pml', pemeriksa: 'pml', admin: 'admin' };
+const ROLE_ALIASES = { ppl: 'ppl', pendata: 'ppl', pml: 'pml', pemeriksa: 'pml', pengawas: 'pml', admin: 'admin', pengolahan: 'pengolahan', operator: 'pengolahan', entri: 'pengolahan' };
 
 function uniq(base, taken) {
   let u = base || 'user', i = 2;
@@ -97,7 +97,7 @@ export default function Users() {
         const phone = cell(pick(r, ['nohp', 'hp', 'telepon', 'nomorhp']));
         let error = '';
         if (!full_name) error = 'Nama kosong';
-        else if (!role) error = `Peran "${roleRaw || '(kosong)'}" tidak dikenal (pakai PPL/PML/Admin)`;
+        else if (!role) error = `Peran "${roleRaw || '(kosong)'}" tidak dikenal (pakai PPL/PML/Pengolahan/Admin)`;
         else if (!/^[a-z0-9._-]{3,32}$/.test(username)) error = 'Username tidak valid';
         else if (password.length < 8) error = 'Kata sandi < 8 karakter';
         return { full_name, role, username, password, phone, error };
@@ -132,7 +132,7 @@ export default function Users() {
           </>}>
       <div className="toolbar">
         <div className="seg">
-          {[['all', 'Semua'], ['ppl', 'PPL'], ['pml', 'PML'], ['admin', 'Admin']].map(([k, l]) => (
+          {[['all', 'Semua'], ['ppl', 'PPL'], ['pml', 'PML'], ['pengolahan', 'Pengolahan'], ['admin', 'Admin']].map(([k, l]) => (
             <button key={k} className={role === k ? 'on' : ''} onClick={() => setRole(k)}>{l} <small>{k === 'all' ? rows?.length ?? '' : counts[k] || 0}</small></button>
           ))}
         </div>
@@ -183,6 +183,7 @@ export default function Users() {
               <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} disabled={form.id === uid}>
                 <option value="ppl">PPL — Petugas Pendata Lapangan</option>
                 <option value="pml">PML — Petugas Pemeriksa Lapangan</option>
+                <option value="pengolahan">Pengolahan — penerimaan, batching & entri dokumen</option>
                 <option value="admin">Admin</option>
               </select></label>
             <label>No. HP <input value={form.phone} inputMode="tel" onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></label>

@@ -1,5 +1,5 @@
 // Read .xlsx / .csv into objects keyed by normalized header, and export CSV.
-import { readSheet } from 'read-excel-file/browser';
+import readXlsxFile, { readSheet } from 'read-excel-file/browser';
 
 export const norm = (h) => String(h ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -45,6 +45,31 @@ export async function readTable(file) {
     .filter((r) => r.some((v) => v !== null && v !== undefined && String(v).trim() !== ''))
     .map((r) => Object.fromEntries(headers.map((h, i) => [h, r[i]])));
   return { headers, rows };
+}
+
+/**
+ * Like readTable, but searches every sheet and the first 25 rows for the header row
+ * that contains the most of `aliases` (normalized). Returns { sheet, headers, rawHeaders, rows }.
+ */
+export async function readTableFind(file, aliases = []) {
+  let sheets;
+  if (/\.csv$/i.test(file.name) || file.type === 'text/csv') sheets = [{ sheet: file.name, data: parseCsv((await file.text()).replace(/^\uFEFF/, '')) }];
+  else sheets = await readXlsxFile(file);
+  let best = null;
+  for (const { sheet, data } of sheets) {
+    for (let i = 0; i < Math.min(25, data.length); i++) {
+      const h = (data[i] || []).map(norm);
+      const score = aliases.filter((a) => h.includes(a)).length + (aliases.length ? 0 : h.filter(Boolean).length / 100);
+      if (!best || score > best.score) best = { score, sheet, data, i };
+    }
+  }
+  if (!best) return { sheet: null, headers: [], rawHeaders: [], rows: [] };
+  const raw = best.data[best.i].map((v) => (v === null || v === undefined ? '' : String(v).trim()));
+  const headers = raw.map((h, j) => norm(h) || `kolom${j + 1}`);
+  const rows = best.data.slice(best.i + 1)
+    .filter((r) => r.some((v) => v !== null && v !== undefined && String(v).trim() !== ''))
+    .map((r) => Object.fromEntries(headers.map((h, j) => [h, r[j]])));
+  return { sheet: best.sheet, headers, rawHeaders: raw.map((h, j) => h || `Kolom ${j + 1}`), rows };
 }
 
 /** First present column among aliases. */
