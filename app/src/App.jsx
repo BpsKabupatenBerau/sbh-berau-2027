@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from './lib/auth';
 import { ToastProvider, Loading } from './components/ui';
 import Shell from './components/Shell';
@@ -115,6 +116,7 @@ export default function App() {
           {/* Everything else is behind the login gate */}
           <Route path="/*" element={<AuthProvider><Gate /></AuthProvider>} />
         </Routes>
+        <Analytics />
       </ToastProvider>
     </HashRouter>
   );
