@@ -65,12 +65,16 @@ export default function Capture({ kind }) {
   }
 
   async function send() {
+    // Location is required: fetch it now if we don't have it yet.
+    let loc = gps;
+    if (!loc) { loc = await getPosition(8000); if (loc) setGps(loc); }
+    if (!loc) { toast('Lokasi wajib — aktifkan GPS/izinkan lokasi lalu coba lagi', 'err'); return; }
     setBusy(true);
     try {
       const res = await submitUpload({
         uid, kind, blob: shot.blob, mime: 'image/jpeg',
         meta: { ruta_id: ruta.id, nks: ruta.nks, no_urut: ruta.no_urut, year: per.year, month: per.month, part: per.part,
-                lat: gps?.lat, lng: gps?.lng, acc: gps?.acc, taken_at: shot.taken_at,
+                lat: loc.lat, lng: loc.lng, acc: loc.acc, taken_at: shot.taken_at,
                 label: `${cfg.word[0].toUpperCase() + cfg.word.slice(1)} ruta ${ruta.no_urut} (${ruta.nama_krt})` },
       });
       toast(res.queued ? 'Tidak ada sinyal — foto disimpan & dikirim otomatis nanti' : 'Foto terkirim — menunggu verifikasi', res.queued ? 'dark' : 'ok');
@@ -123,17 +127,22 @@ export default function Capture({ kind }) {
                 <button className="photo-retake" onClick={() => fileRef.current.click()}>Ambil ulang</button>
                 <div className="photo-meta">
                   <div>🕒 {fmtDateTime(shot.taken_at)}</div>
-                  <div>📍 {gps === undefined ? 'Mencari lokasi…' : gps ? <>{gps.lat.toFixed(5)}, {gps.lng.toFixed(5)} (±{gps.acc} m) · <a href={mapsLink(gps.lat, gps.lng)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>peta</a></> : 'Lokasi tidak tersedia — aktifkan GPS'}</div>
+                  <div>📍 {gps === undefined ? 'Mencari lokasi…' : gps ? <>{gps.lat.toFixed(5)}, {gps.lng.toFixed(5)} (±{gps.acc} m) · <a href={mapsLink(gps.lat, gps.lng)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>peta</a></> : <span className="t-err">Lokasi wajib — aktifkan GPS</span>}</div>
                   <div className="photo-size">{fmtSize(shot.origSize)} → {fmtSize(shot.blob.size)}</div>
                 </div>
               </div>
-              <Button busy={busy} icon="upload" className="mt block" onClick={send}>{cur ? 'Kirim & ganti foto lama' : 'Kirim foto'}</Button>
+              {gps === undefined && <p className="hint">Menunggu lokasi… pastikan GPS/izin lokasi aktif.</p>}
+              {gps === null && (
+                <div className="alert alert-warn mt"><Icon name="alert" /><span>Lokasi belum didapat dan <b>wajib</b> untuk mengirim.
+                  <button className="linkish" onClick={() => { setGps(undefined); getPosition(8000).then((g) => setGps(g ?? null)); }}>Coba cari lokasi lagi</button></span></div>
+              )}
+              <Button busy={busy} icon="upload" className="mt block" disabled={!gps} onClick={send}>{cur ? 'Kirim & ganti foto lama' : 'Kirim foto'}</Button>
             </>
           ) : (
             <label className="drop mt">
               <Icon name="camera" size={40} />
               <b>{cur ? `Ambil ulang foto ${cfg.word}` : `Ambil foto ${cfg.word}`}</b>
-              <small>Kamera akan terbuka · lokasi &amp; waktu dicatat otomatis</small>
+              <small>Kamera akan terbuka · lokasi <b>wajib</b> &amp; waktu dicatat otomatis</small>
               <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onFile} hidden />
             </label>
           )}

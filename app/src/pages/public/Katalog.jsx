@@ -7,16 +7,18 @@ import './Public.css';
 const PAGE = 50;
 
 /**
- * Every word must appear somewhere (komoditas, kualitas or kelas), so
- * "beras cap ayam" finds "BERAS — CAP AYAM". A number searches the code prefix.
+ * Every word must appear somewhere (komoditas, kualitas, kelas — and a number
+ * also matches the code prefix). So "beras cap ayam" finds "BERAS - CAP AYAM",
+ * and "77" finds "BERAS - 77" (the kualitas name), not only codes.
  * PostgREST logic tree: or=(and(or(...),or(...))) — `*` is the ilike wildcard.
  */
 function searchFilter(raw) {
   const words = raw.replace(/[%*,()."'\\:]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 6);
   if (!words.length) return null;
-  const one = (w) => (/^\d+$/.test(w)
-    ? `kode_kualitas.ilike.${w}*`
-    : `or(nama_komoditas.ilike.*${w}*,nama_kualitas.ilike.*${w}*,kelas.ilike.*${w}*)`);
+  const one = (w) => {
+    const base = `nama_komoditas.ilike.*${w}*,nama_kualitas.ilike.*${w}*,kelas.ilike.*${w}*`;
+    return /^\d+$/.test(w) ? `or(${base},kode_kualitas.ilike.${w}*)` : `or(${base})`;
+  };
   return `and(${words.map(one).join(',')})`;
 }
 
@@ -60,28 +62,35 @@ export default function Katalog() {
   useEffect(() => { setRows(null); timer.current = setTimeout(() => search(false), 250); return () => clearTimeout(timer.current); }, [kat, q]); // eslint-disable-line
 
   const empty = master === 0;
+  const katNama = kelompok.find((k) => k.kode === kat)?.nama;
 
   return (
     <div className="pub">
       <PublicTop />
       <div className="pub-wrap wide">
-        <h1>Katalog Komoditas &amp; Kualitas</h1>
-        <p className="lead">
-          Master kode SPKRT 2027{master ? <> — {master.toLocaleString('id-ID')} kualitas</> : ''}. Cari dengan nama atau kode, mis. <i>beras cap ayam</i> atau <i>0111001</i>.
-        </p>
-
-        <div className="search" style={{ marginBottom: 12 }}>
-          <Icon name="search" size={18} />
-          <input placeholder="Cari komoditas, kualitas, atau kode…" value={q} onChange={(e) => setQ(e.target.value)} inputMode="search" />
-          {q && <button className="search-x" onClick={() => setQ('')} aria-label="Hapus"><Icon name="x" size={16} /></button>}
+        <div className="kat-hero">
+          <span className="kat-hero-ic"><Icon name="db" size={28} /></span>
+          <div className="kat-hero-tx">
+            <h1>Katalog Komoditas &amp; Kualitas</h1>
+            <p>Master kode SPKRT 2027{master ? <> · <b>{master.toLocaleString('id-ID')}</b> kualitas</> : ''}</p>
+          </div>
+          <div className="kat-hero-search">
+            <Icon name="search" size={20} />
+            <input placeholder="Cari nama atau kode, mis. beras cap ayam atau 0111001…" value={q}
+                   onChange={(e) => setQ(e.target.value)} inputMode="search" autoFocus />
+            {q && <button className="search-x" onClick={() => setQ('')} aria-label="Hapus"><Icon name="x" size={16} /></button>}
+          </div>
         </div>
-        <div className="kat-filter">
-          <button className={!kat ? 'on' : ''} onClick={() => setKat('')}>Semua</button>
-          {kelompok.map((k) => (
-            <button key={k.kode} className={kat === k.kode ? 'on' : ''} onClick={() => setKat(k.kode)} title={k.nama}>
-              {k.kode} · {k.nama.split(',')[0].split(' ').slice(0, 2).join(' ')}
-            </button>
-          ))}
+
+        <div className="kat-controls">
+          <label className="kat-select">
+            <Icon name="layers" size={16} />
+            <select value={kat} onChange={(e) => setKat(e.target.value)}>
+              <option value="">Semua kategori ({kelompok.length})</option>
+              {kelompok.map((k) => <option key={k.kode} value={k.kode}>{k.kode} · {k.nama}</option>)}
+            </select>
+          </label>
+          {found != null && !empty && !problem && <span className="kat-count">{found.toLocaleString('id-ID')} hasil{kat ? ` · ${katNama}` : ''}</span>}
         </div>
 
         {problem === 'table' ? (
@@ -92,11 +101,10 @@ export default function Katalog() {
           <Empty icon="search" title="Tidak ditemukan">Coba kata kunci lain, kurangi jumlah kata, atau pilih kategori “Semua”.</Empty>
         ) : (
           <div className="card">
-            {found != null && <div style={{ padding: '10px 14px', color: 'var(--muted)', fontSize: 13, borderBottom: '1px solid var(--line-2)' }}>{found.toLocaleString('id-ID')} hasil</div>}
             {rows.map((r) => (
               <div key={r.kode_kualitas} className="cat-item">
                 <div className="ci-top">
-                  <b>{r.nama_komoditas} — {r.nama_kualitas}</b>
+                  <b>{r.nama_komoditas} - {r.nama_kualitas}</b>
                   <span className="kode">{r.kode_kualitas}</span>
                 </div>
                 <small><span className="tag">{r.kelompok_kode}</span> {r.kelas || r.kelompok}</small>

@@ -2,36 +2,26 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { errMsg } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
-import { fmtDate, fmtDateTime } from '../../lib/period';
+import { fmtDateTime } from '../../lib/period';
 import { compressImage, getPosition, fmtSize } from '../../lib/media';
 import { submitUpload, onQueueChange } from '../../lib/uploads';
 import { Page, Card, Chip, Button, Icon, Loading, SignedImg, Lightbox, useToast } from '../../components/ui';
 import DocScanner from '../../components/DocScanner';
 import { loadVehicle } from '../ppl/data';
 
-const JENIS = ['Motor', 'Mobil'];
-
-// STNK + photo of the vehicle used in the field (one each), verified by admin.
+// STNK scan + photo of the vehicle used in the field (one each), verified by admin.
 export default function Kendaraan() {
   const { uid } = useAuth();
   const nav = useNavigate();
   const toast = useToast();
   const [v, setV] = useState(null);
-  const [form, setForm] = useState({ nomor_polisi: '', jenis: 'Motor', berlaku: '' });
   const [pick, setPick] = useState({});      // { stnk: {...}, kendaraan: {...} }
   const [scan, setScan] = useState(false);
   const [busy, setBusy] = useState('');
   const [zoom, setZoom] = useState(null);
 
-  async function load() {
-    const x = await loadVehicle(uid);
-    setV(x);
-    const m = x.stnk?.meta || x.kendaraan?.meta;
-    if (m) setForm((f) => (f.nomor_polisi ? f : { nomor_polisi: m.nomor_polisi || '', jenis: m.jenis || 'Motor', berlaku: m.berlaku || '' }));
-  }
+  async function load() { setV(await loadVehicle(uid)); }
   useEffect(() => { load(); return onQueueChange(load); }, []); // eslint-disable-line
-
-  const extra = () => ({ nomor_polisi: form.nomor_polisi.trim().toUpperCase().replace(/\s+/g, ' '), jenis: form.jenis, berlaku: form.berlaku || null });
 
   async function onFile(kind, e) {
     const f = e.target.files?.[0]; e.target.value = '';
@@ -49,14 +39,12 @@ export default function Kendaraan() {
   }
 
   async function send(kind) {
-    if (!form.nomor_polisi.trim()) return toast('Isi nomor polisi dulu', 'err');
-    if (kind === 'stnk' && !form.berlaku) return toast('Isi masa berlaku STNK', 'err');
     setBusy(kind);
     try {
       const gps = kind === 'kendaraan' ? await getPosition(8000) : null;
       const r = await submitUpload({
         uid, kind, blob: pick[kind].blob, mime: pick[kind].mime,
-        meta: { lat: gps?.lat, lng: gps?.lng, acc: gps?.acc, extra: extra(), label: kind === 'stnk' ? 'STNK' : 'Foto kendaraan' },
+        meta: { lat: gps?.lat, lng: gps?.lng, acc: gps?.acc, label: kind === 'stnk' ? 'STNK' : 'Foto kendaraan' },
       });
       toast(r.queued ? 'Tidak ada sinyal — dikirim otomatis nanti' : 'Terkirim — menunggu verifikasi', r.queued ? 'dark' : 'ok');
       setPick((p) => ({ ...p, [kind]: null })); load();
@@ -65,7 +53,6 @@ export default function Kendaraan() {
   }
 
   if (!v) return <Page title="Kendaraan" back={() => nav('/')}><Loading /></Page>;
-  const expired = form.berlaku && new Date(form.berlaku) < new Date();
 
   const block = (kind, title, desc) => {
     const cur = v[kind]; const p = pick[kind];
@@ -106,24 +93,7 @@ export default function Kendaraan() {
   };
 
   return (
-    <Page title="Kendaraan" subtitle="STNK & foto kendaraan untuk pendataan" back={() => nav('/')}>
-      <Card className="pad">
-        <div className="form" style={{ padding: '8px 0' }}>
-          <label>Nomor polisi
-            <input value={form.nomor_polisi} placeholder="KT 1234 AB" autoCapitalize="characters"
-                   onChange={(e) => setForm((f) => ({ ...f, nomor_polisi: e.target.value }))} /></label>
-          <div className="grid2 form">
-            <label>Jenis
-              <select value={form.jenis} onChange={(e) => setForm((f) => ({ ...f, jenis: e.target.value }))}>
-                {JENIS.map((j) => <option key={j}>{j}</option>)}
-              </select></label>
-            <label>STNK berlaku s.d.
-              <input type="date" value={form.berlaku} onChange={(e) => setForm((f) => ({ ...f, berlaku: e.target.value }))} /></label>
-          </div>
-          {expired && <div className="alert alert-warn" style={{ margin: 0 }}><Icon name="alert" /><span>STNK sudah lewat masa berlaku ({fmtDate(form.berlaku)}).</span></div>}
-        </div>
-      </Card>
-
+    <Page title="Kendaraan" subtitle="Scan STNK & foto kendaraan untuk pendataan" back={() => nav('/')}>
       {block('stnk', 'STNK', 'Kamera, depan & belakang')}
       {block('kendaraan', 'Foto kendaraan', 'Pelat nomor harus terlihat jelas')}
 

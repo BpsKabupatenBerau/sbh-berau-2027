@@ -43,9 +43,20 @@
 .cat-item small { color: var(--muted); display: block; margin-top: 2px; }
 .cat-item .tag { background: var(--brand-l); color: var(--brand-d); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
 .load-more { width: 100%; padding: 13px; border: 1px solid var(--line); background: #fff; border-radius: 12px; font-weight: 700; color: var(--brand-d); cursor: pointer; margin-top: 12px; }
-.kat-filter { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 2px; }
-.kat-filter button { white-space: nowrap; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
-.kat-filter button.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+/* Katalog hero + category dropdown */
+.kat-hero { background: linear-gradient(150deg, var(--brand), var(--brand-dd)); color: #fff; border-radius: 18px; padding: 20px; margin: 4px 0 14px;
+  display: grid; grid-template-columns: auto 1fr; gap: 14px 14px; align-items: center; box-shadow: 0 10px 30px rgba(15,47,77,.18); }
+.kat-hero-ic { width: 54px; height: 54px; border-radius: 15px; background: rgba(255,255,255,.16); display: grid; place-items: center; flex: none; }
+.kat-hero-tx h1 { font-size: 23px; font-weight: 800; margin: 0; line-height: 1.15; }
+.kat-hero-tx p { margin: 3px 0 0; font-size: 13.5px; opacity: .9; } .kat-hero-tx p b { font-weight: 800; }
+.kat-hero-search { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 13px; padding: 2px 10px; color: var(--muted); }
+.kat-hero-search input { flex: 1; border: none !important; box-shadow: none !important; padding: 13px 0 !important; font-size: 15px; color: var(--ink); background: transparent; }
+@media (max-width: 480px) { .kat-hero-tx h1 { font-size: 20px; } .kat-hero-ic { width: 46px; height: 46px; } }
+
+.kat-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.kat-select { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--line); border-radius: 11px; padding: 0 6px 0 12px; color: var(--muted); }
+.kat-select select { border: none !important; box-shadow: none !important; padding: 11px 8px !important; font-weight: 600; color: var(--ink); background: transparent; max-width: min(78vw, 420px); }
+.kat-count { color: var(--muted); font-size: 13px; }
 .pub-foot { text-align: center; color: var(--muted); font-size: 12px; margin-top: 24px; }
 .ok-box { background: var(--ok-bg); border: 1px solid #bfe3cf; color: #0b6239; border-radius: 12px; padding: 14px; text-align: center; margin-bottom: 14px; font-weight: 600; }
 .pub label.fld { display: block; font-weight: 600; font-size: 13.5px; color: var(--ink-2); margin: 0 2px 6px; }
@@ -54,3 +65,11 @@
 .pub .combo input, .pub .fld > input { width: 100%; }
 .pub .search input { color: var(--ink); }
 .search-x { border: 0; background: var(--line-2, #eef2f6); color: var(--muted); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; flex: none; }
+
+/* PML usulan cart (per-item kategori) */
+.usul-cart { display: grid; gap: 8px; }
+.usul-item { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.usul-item .kk { font-weight: 800; color: var(--brand-d); background: var(--brand-l); border-radius: 8px; padding: 4px 9px; font-size: 13px; flex: none; }
+.usul-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.usul-tx b { font-size: 14.5px; } .usul-tx small { color: var(--muted); font-size: 12.5px; }
+.usul-del { border: none; background: var(--err-bg); color: var(--err); border-radius: 8px; width: 30px; height: 30px; font-size: 20px; line-height: 1; cursor: pointer; flex: none; }

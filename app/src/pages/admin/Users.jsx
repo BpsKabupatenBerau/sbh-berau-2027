@@ -31,6 +31,7 @@ export default function Users() {
   const [role, setRole] = useState('all');
   const [q, setQ] = useState('');
   const [form, setForm] = useState(null);       // add / edit
+  const [pwReset, setPwReset] = useState(null); // { p, password }
   const [cred, setCred] = useState(null);       // credentials to show once
   const [imp, setImp] = useState(null);         // bulk import state
   const [busy, setBusy] = useState(false);
@@ -68,11 +69,17 @@ export default function Users() {
     } catch (e) { toast(errMsg(e), 'err'); }
     setBusy(false);
   }
-  async function resetPw(p) {
-    const pw = genPassword();
-    if (!window.confirm(`Atur ulang kata sandi ${p.full_name || p.username}?`)) return;
-    try { await adminUsers({ action: 'set_password', user_id: p.id, password: pw }); setCred([{ nama: p.full_name, username: p.username, kata_sandi: pw, peran: p.role }]); }
-    catch (e) { toast(errMsg(e), 'err'); }
+  async function doReset() {
+    const { p, password } = pwReset;
+    const pw = password.trim();
+    if (pw.length < 8) return toast('Kata sandi minimal 8 karakter', 'err');
+    setBusy(true);
+    try {
+      await adminUsers({ action: 'set_password', user_id: p.id, password: pw });
+      setPwReset(null);
+      setCred([{ nama: p.full_name, username: p.username, kata_sandi: pw, peran: p.role }]);
+    } catch (e) { toast(errMsg(e), 'err'); }
+    setBusy(false);
   }
   async function setActive(p, active) {
     if (!active && !window.confirm(`Nonaktifkan ${p.full_name || p.username}? Akun tidak bisa login dan kehilangan akses data.`)) return;
@@ -156,7 +163,7 @@ export default function Users() {
                     <td>{p.active ? <span className="t-ok">Aktif</span> : <span className="muted">Nonaktif</span>}</td>
                     <td className="row-actions">
                       <button className="icon-btn" title="Ubah" onClick={() => setForm({ ...p, phone: p.phone || '' })}><Icon name="edit" size={18} /></button>
-                      <button className="icon-btn" title="Atur ulang kata sandi" onClick={() => resetPw(p)}><Icon name="key" size={18} /></button>
+                      <button className="icon-btn" title="Atur ulang kata sandi" onClick={() => setPwReset({ p, password: genPassword() })}><Icon name="key" size={18} /></button>
                       {p.id !== uid && (p.active
                         ? <button className="icon-btn danger" title="Nonaktifkan" onClick={() => setActive(p, false)}><Icon name="x" size={18} /></button>
                         : <button className="icon-btn" title="Aktifkan" onClick={() => setActive(p, true)}><Icon name="refresh" size={18} /></button>)}
@@ -194,6 +201,24 @@ export default function Users() {
                 <small className="muted">Petugas bisa menggantinya sendiri di menu Akun.</small>
               </label>
             )}
+          </div>
+        )}
+      </Modal>
+
+      {/* reset password: auto or manual */}
+      <Modal open={!!pwReset} title="Atur ulang kata sandi" onClose={() => setPwReset(null)}
+             footer={<><Button variant="ghost" onClick={() => setPwReset(null)}>Batal</Button><Button busy={busy} onClick={doReset}>Simpan kata sandi</Button></>}>
+        {pwReset && (
+          <div className="form">
+            <div className="kv"><span>Akun</span><b>{pwReset.p.full_name || pwReset.p.username} <span className="mono muted">({pwReset.p.username})</span></b></div>
+            <label>Kata sandi baru
+              <div className="pw">
+                <input value={pwReset.password} autoFocus autoCapitalize="none"
+                       onChange={(e) => setPwReset((x) => ({ ...x, password: e.target.value }))} />
+                <button type="button" onClick={() => setPwReset((x) => ({ ...x, password: genPassword() }))}>Acak</button>
+              </div>
+              <small className="muted">Ketik manual, atau tekan <b>Acak</b> untuk kata sandi otomatis. Minimal 8 karakter.</small>
+            </label>
           </div>
         )}
       </Modal>
