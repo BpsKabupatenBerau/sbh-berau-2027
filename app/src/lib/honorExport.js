@@ -28,6 +28,18 @@ export const tanggalPanjang = (iso) => {
   return `${d} ${BULAN[m - 1]} ${y}`;
 };
 
+// Fixed signatory + place defaults, remembered on this device so the admin types them once.
+const TTD_KEY = 'spkrt-honor-ttd';
+export const TTD_FIELDS = ['tempat', 'bendahara_nama', 'bendahara_nip', 'ppk_nama', 'ppk_nip'];
+export function loadTtd() { try { return JSON.parse(localStorage.getItem(TTD_KEY) || '{}'); } catch { return {}; } }
+export function saveTtd(obj) {
+  try {
+    const next = loadTtd();
+    TTD_FIELDS.forEach((k) => { if (obj?.[k] != null && obj[k] !== '') next[k] = obj[k]; });
+    localStorage.setItem(TTD_KEY, JSON.stringify(next));
+  } catch { /* private mode */ }
+}
+
 const THIN = { style: 'thin' };
 const BOX = { top: THIN, left: THIN, bottom: THIN, right: THIN };
 const NUM = '#,##0;-#,##0;"-"';

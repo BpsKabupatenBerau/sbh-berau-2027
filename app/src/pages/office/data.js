@@ -20,10 +20,9 @@ export async function loadDokumen(year, month, extra = (q) => q) {
 }
 
 export const ENTRY = {
-  belum:   ['Belum', 'idle'],
-  proses:  ['Proses', 'info'],
-  selesai: ['Selesai', 'ok'],
-  masalah: ['Masalah', 'err'],
+  belum: ['Belum', 'idle'],
+  clean: ['Clean', 'ok'],
+  error: ['Error', 'err'],
 };
 export const KONDISI = { lengkap: 'Lengkap', tidak_lengkap: 'Tidak lengkap', rusak: 'Rusak' };
 export const personName = (people, id) => (id && (people[id]?.full_name || people[id]?.username)) || '—';

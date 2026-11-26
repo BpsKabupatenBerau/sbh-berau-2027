@@ -38,6 +38,10 @@ export function shiftPeriod(p, delta) {
   return { year: Math.floor(mi / 12), month: (mi % 12) + 1, part: (idx % 3) + 1 };
 }
 
+export const monthStartPeriod = (kind = 'kunjungan', d = new Date()) => {
+  const n = currentPeriod(kind, d);
+  return { year: n.year, month: n.month, part: isMonthly(kind) ? 0 : 1 };
+};
 export const cmpPeriod = (a, b) => (a.year - b.year) || (a.month - b.month) || ((a.part || 0) - (b.part || 0));
 
 export function periodTitle(p) {

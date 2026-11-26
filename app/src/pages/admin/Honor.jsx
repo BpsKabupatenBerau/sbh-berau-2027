@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, errMsg } from '../../lib/supabase';
 import { readTableFind, pick, cell } from '../../lib/excel';
 import { ymNow, BULAN_FULL, fmtDate } from '../../lib/period';
-import { neto } from '../../lib/honorExport';
+import { neto, loadTtd, saveTtd } from '../../lib/honorExport';
 import { Page, Card, Button, Icon, Loading, Empty, Modal, useToast } from '../../components/ui';
 
 export const rp = (n) => `Rp ${Math.round(Number(n) || 0).toLocaleString('id-ID')}`;
@@ -50,10 +50,10 @@ export default function Honor() {
   // ---------- kegiatan ----------
   function newKegiatan() {
     const last = keg?.[0] || {};
+    const ttd = loadTtd();  // fixed bendahara/PPK/tempat, typed once and remembered
     const now = ymNow();
     setForm({
-      ...Object.fromEntries(HEADER_KEYS.map((k) => [k, last[k] || ''])),
-      tempat: last.tempat || 'Tanjung Redeb',
+      ...Object.fromEntries(HEADER_KEYS.map((k) => [k, ttd[k] ?? last[k] ?? (k === 'tempat' ? 'Tanjung Redeb' : '')])),
       tahun: now.year, bulan: now.month, jabatan: 'PPL', honor_ob: last.honor_ob || '',
       judul: `HONOR PETUGAS PENDATAAN SPKRT BULAN ${BULAN_FULL[now.month - 1].toUpperCase()} ${now.year}`,
       bulan_label: BULAN_FULL[now.month - 1].toUpperCase(), tanggal: '',
@@ -65,6 +65,7 @@ export default function Honor() {
     const { data, error } = await supabase.from('honor_kegiatan').insert(row).select().single();
     setBusy(false);
     if (error) return toast(errMsg(error), 'err');
+    saveTtd(row);  // remember the signatories for next time
     setForm(null); nav(`/honor/${data.id}`);
   }
 

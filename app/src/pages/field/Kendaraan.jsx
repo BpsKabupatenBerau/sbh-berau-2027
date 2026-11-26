@@ -85,8 +85,8 @@ export default function Kendaraan() {
               <input type="file" accept="image/*,application/pdf" hidden onChange={(e) => onFile('stnk', e)} /></label>
           </div>
         ) : (
-          <label className="drop mt"><Icon name="camera" size={34} /><b>Foto kendaraan</b><small>{desc}</small>
-            <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFile('kendaraan', e)} /></label>
+          <label className="drop mt"><Icon name="camera" size={34} /><b>Foto kendaraan</b><small>{desc} · kamera atau galeri</small>
+            <input type="file" accept="image/*" hidden onChange={(e) => onFile('kendaraan', e)} /></label>
         )}
       </div>
     );

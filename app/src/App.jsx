@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AuthProvider, useAuth } from './lib/auth';
 import { ToastProvider, Loading } from './components/ui';
 import Shell from './components/Shell';
@@ -80,9 +81,6 @@ const ROUTES = {
     <>
       <Route path="/" element={<Navigate to="/entri" replace />} />
       <Route path="/entri" element={<Entri />} />
-      <Route path="/penerimaan" element={<Penerimaan />} />
-      <Route path="/batching" element={<Batching />} />
-      <Route path="/fasih" element={<Fasih />} />
     </>
   ),
 };
@@ -117,6 +115,7 @@ export default function App() {
           <Route path="/*" element={<AuthProvider><Gate /></AuthProvider>} />
         </Routes>
         <Analytics />
+        <SpeedInsights />
       </ToastProvider>
     </HashRouter>
   );

@@ -34,6 +34,24 @@ export async function loadQueuedKeys(uid, kind, { year, month, part }) {
   return out;
 }
 
+/**
+ * For kunjungan (dasarian): how many ruta are APPROVED in each part of the month,
+ * so the UI can lock the next period until the current one is fully approved.
+ * Returns { total, approved: { 1: n, 2: n, 3: n } }. Null for monthly kinds.
+ */
+export async function loadMonthApproval(kind, { year, month }, userId) {
+  if (kind !== 'kunjungan') return null;
+  const { ruta } = await loadMyRuta();
+  let q = supabase.from('uploads').select('period_part, status')
+    .eq('kind', 'kunjungan').eq('period_year', year).eq('period_month', month).eq('status', 'approved');
+  if (userId) q = q.eq('user_id', userId);
+  const { data, error } = await q;
+  if (error) throw error;
+  const approved = {};
+  (data || []).forEach((u) => { approved[u.period_part] = (approved[u.period_part] || 0) + 1; });
+  return { total: ruta.length, approved };
+}
+
 export function statusOf(ruta, uploads, queued) {
   if (queued[ruta.id]) return 'queued';
   return uploads[ruta.id]?.status || 'none';

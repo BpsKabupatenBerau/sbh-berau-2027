@@ -21,10 +21,7 @@ export const NAV = {
     { to: '/akun', icon: 'user', label: 'Akun' },
   ],
   pengolahan: [
-    { to: '/entri', icon: 'list', label: 'Entri' },
-    { to: '/penerimaan', icon: 'inbox', label: 'Penerimaan' },
-    { to: '/batching', icon: 'layers', label: 'Batching' },
-    { to: '/fasih', icon: 'db', label: 'FASIH' },
+    { to: '/entri', icon: 'list', label: 'Entri', end: true },
     { to: '/akun', icon: 'user', label: 'Akun' },
   ],
   admin: [

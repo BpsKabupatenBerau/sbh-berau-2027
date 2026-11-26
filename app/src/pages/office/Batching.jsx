@@ -46,7 +46,7 @@ export default function Batching() {
     const m = {};
     (docs || []).forEach((d) => {
       if (!d.batch_id) return;
-      const x = (m[d.batch_id] ||= { n: 0, selesai: 0, masalah: 0, proses: 0, nks: new Set() });
+      const x = (m[d.batch_id] ||= { n: 0, clean: 0, error: 0, nks: new Set() });
       x.n++; x.nks.add(d.nks); if (x[d.entry_status] !== undefined) x[d.entry_status]++;
     });
     return m;
@@ -119,16 +119,17 @@ export default function Batching() {
           <section>
             <h2 className="sec">Batch {batches?.length ? `· ${batches.length}` : ''}</h2>
             {!batches?.length ? <Empty icon="layers" title="Belum ada batch bulan ini" /> : batches.map((b) => {
-              const x = stat[b.id] || { n: 0, selesai: 0, masalah: 0, proses: 0, nks: new Set() };
+              const x = stat[b.id] || { n: 0, clean: 0, error: 0, nks: new Set() };
+              const done = x.n && x.clean + x.error === x.n;
               return (
                 <Card key={b.id} className="batch-card">
                   <div className="batch-top">
                     <div><b className="mono">{b.kode}</b><small className="block muted">{x.n} dokumen · NKS {[...x.nks].sort().join(', ') || '—'}</small></div>
-                    <span className={`chip chip-${x.n && x.selesai === x.n ? 'ok' : x.masalah ? 'err' : x.selesai || x.proses ? 'info' : 'idle'}`}>
-                      {x.n && x.selesai === x.n ? 'Selesai' : `${x.selesai}/${x.n} selesai`}</span>
+                    <span className={`chip chip-${done ? 'ok' : x.error ? 'err' : x.clean ? 'info' : 'idle'}`}>
+                      {done ? 'Selesai' : `${x.clean}/${x.n} clean`}</span>
                   </div>
-                  <Progress value={x.selesai} total={x.n} />
-                  {x.masalah > 0 && <small className="t-err">{x.masalah} dokumen bermasalah</small>}
+                  <Progress value={x.clean} total={x.n} />
+                  {x.error > 0 && <small className="t-err">{x.error} dokumen error</small>}
                   <div className="batch-act">
                     <label className="inline">Operator
                       <select value={b.operator_id || ''} onChange={(e) => setOperator(b, e.target.value)}>

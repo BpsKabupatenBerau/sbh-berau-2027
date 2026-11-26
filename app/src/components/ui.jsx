@@ -182,11 +182,13 @@ export function Page({ title, subtitle, back, actions, children, wide }) {
   );
 }
 
-export function PeriodPicker({ value, onChange, max, label, range }) {
-  const atMax = max && value.year === max.year && value.month === max.month && (value.part || 0) === (max.part || 0);
+export function PeriodPicker({ value, onChange, max, min, label, range }) {
+  const eq = (a, b) => a && b && a.year === b.year && a.month === b.month && (a.part || 0) === (b.part || 0);
+  const atMax = eq(value, max);
+  const atMin = eq(value, min);
   return (
     <div className="weekpick">
-      <button className="icon-btn soft" onClick={() => onChange(-1)} aria-label="Periode sebelumnya"><Icon name="left" /></button>
+      <button className="icon-btn soft" onClick={() => onChange(-1)} disabled={atMin} aria-label="Periode sebelumnya"><Icon name="left" /></button>
       <div className="weekpick-mid"><b>{label}</b><span>{range}</span></div>
       <button className="icon-btn soft" onClick={() => onChange(1)} disabled={atMax} aria-label="Periode berikutnya"><Icon name="right" /></button>
     </div>

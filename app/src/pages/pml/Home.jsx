@@ -26,7 +26,8 @@ export default function PmlHome() {
     });
   }, [per.year, per.month, per.part]); // eslint-disable-line
 
-  const move = (dlt) => { const n = shiftPeriod(per, dlt); if (cmpPeriod(n, now) <= 0) setPer(n); };
+  // Locked to the current month (pengawasan is monthly).
+  const move = (dlt) => { const n = shiftPeriod(per, dlt); if (cmpPeriod(n, now) === 0) setPer(n); };
   const tot = (rows || []).reduce((a, r) => ({ t: a.t + r.total, u: a.u + r.uploaded, w: a.w + r.awas_uploaded }), { t: 0, u: 0, w: 0 });
   const first = (profile.full_name || profile.username).split(' ')[0];
 
@@ -40,7 +41,7 @@ export default function PmlHome() {
       </div>
 
       <h2 className="sec">Pendataan PPL</h2>
-      <PeriodPicker value={per} max={now} onChange={move} label={periodTitle(per)} range={periodRangeLabel(per)} />
+      <PeriodPicker value={per} min={now} max={now} onChange={move} label={periodTitle(per)} range={periodRangeLabel(per)} />
       {!rows ? <Loading /> : !rows.length ? <Empty icon="map" title="Belum ada NKS">Admin belum menugaskan NKS ke Anda.</Empty> : (
         <Card className="list">
           {rows.map((r) => (

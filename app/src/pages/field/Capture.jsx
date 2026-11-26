@@ -12,7 +12,8 @@ const CFG = {
   pengawasan: { base: '/pengawasan', word: 'pengawasan' },
 };
 
-// Take/send the photo for one ruta in one period. kind: 'kunjungan' (PPL) | 'pengawasan' (PML).
+// Take/pick the photo for one ruta in one period. kind: 'kunjungan' (PPL) | 'pengawasan' (PML).
+// Photo can come from the camera OR the gallery/WhatsApp; location is recorded when available (not required).
 export default function Capture({ kind }) {
   const cfg = CFG[kind];
   const { id } = useParams();
@@ -65,16 +66,12 @@ export default function Capture({ kind }) {
   }
 
   async function send() {
-    // Location is required: fetch it now if we don't have it yet.
-    let loc = gps;
-    if (!loc) { loc = await getPosition(8000); if (loc) setGps(loc); }
-    if (!loc) { toast('Lokasi wajib — aktifkan GPS/izinkan lokasi lalu coba lagi', 'err'); return; }
     setBusy(true);
     try {
       const res = await submitUpload({
         uid, kind, blob: shot.blob, mime: 'image/jpeg',
         meta: { ruta_id: ruta.id, nks: ruta.nks, no_urut: ruta.no_urut, year: per.year, month: per.month, part: per.part,
-                lat: loc.lat, lng: loc.lng, acc: loc.acc, taken_at: shot.taken_at,
+                lat: gps?.lat, lng: gps?.lng, acc: gps?.acc, taken_at: shot.taken_at,
                 label: `${cfg.word[0].toUpperCase() + cfg.word.slice(1)} ruta ${ruta.no_urut} (${ruta.nama_krt})` },
       });
       toast(res.queued ? 'Tidak ada sinyal — foto disimpan & dikirim otomatis nanti' : 'Foto terkirim — menunggu verifikasi', res.queued ? 'dark' : 'ok');
@@ -124,29 +121,24 @@ export default function Capture({ kind }) {
               <h2 className="sec">Foto baru</h2>
               <div className="photo">
                 <img src={shot.url} alt="" className="photo-img" />
-                <button className="photo-retake" onClick={() => fileRef.current.click()}>Ambil ulang</button>
+                <button className="photo-retake" onClick={() => fileRef.current.click()}>Ganti foto</button>
                 <div className="photo-meta">
                   <div>🕒 {fmtDateTime(shot.taken_at)}</div>
-                  <div>📍 {gps === undefined ? 'Mencari lokasi…' : gps ? <>{gps.lat.toFixed(5)}, {gps.lng.toFixed(5)} (±{gps.acc} m) · <a href={mapsLink(gps.lat, gps.lng)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>peta</a></> : <span className="t-err">Lokasi wajib — aktifkan GPS</span>}</div>
+                  <div>📍 {gps === undefined ? 'Mencari lokasi…' : gps ? <>{gps.lat.toFixed(5)}, {gps.lng.toFixed(5)} (±{gps.acc} m) · <a href={mapsLink(gps.lat, gps.lng)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>peta</a></> : 'tanpa lokasi'}</div>
                   <div className="photo-size">{fmtSize(shot.origSize)} → {fmtSize(shot.blob.size)}</div>
                 </div>
               </div>
-              {gps === undefined && <p className="hint">Menunggu lokasi… pastikan GPS/izin lokasi aktif.</p>}
-              {gps === null && (
-                <div className="alert alert-warn mt"><Icon name="alert" /><span>Lokasi belum didapat dan <b>wajib</b> untuk mengirim.
-                  <button className="linkish" onClick={() => { setGps(undefined); getPosition(8000).then((g) => setGps(g ?? null)); }}>Coba cari lokasi lagi</button></span></div>
-              )}
-              <Button busy={busy} icon="upload" className="mt block" disabled={!gps} onClick={send}>{cur ? 'Kirim & ganti foto lama' : 'Kirim foto'}</Button>
+              <Button busy={busy} icon="upload" className="mt block" onClick={send}>{cur ? 'Kirim & ganti foto lama' : 'Kirim foto'}</Button>
             </>
           ) : (
             <label className="drop mt">
               <Icon name="camera" size={40} />
-              <b>{cur ? `Ambil ulang foto ${cfg.word}` : `Ambil foto ${cfg.word}`}</b>
-              <small>Kamera akan terbuka · lokasi <b>wajib</b> &amp; waktu dicatat otomatis</small>
-              <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onFile} hidden />
+              <b>{cur ? `Ganti foto ${cfg.word}` : `Ambil foto ${cfg.word}`}</b>
+              <small>Dari kamera atau galeri/WhatsApp · lokasi &amp; waktu dicatat otomatis bila tersedia</small>
+              <input ref={fileRef} type="file" accept="image/*" onChange={onFile} hidden />
             </label>
           )}
-          {shot && <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onFile} hidden />}
+          {shot && <input ref={fileRef} type="file" accept="image/*" onChange={onFile} hidden />}
           {busy && !shot && <Loading text="Memproses foto…" />}
         </>
       )}

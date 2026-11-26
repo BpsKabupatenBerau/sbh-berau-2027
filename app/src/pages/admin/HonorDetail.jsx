@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase, errMsg } from '../../lib/supabase';
 import { BULAN_FULL, fmtDate } from '../../lib/period';
-import { bruto, neto, terbilangRupiah, exportNominatif } from '../../lib/honorExport';
+import { bruto, neto, terbilangRupiah, exportNominatif, saveTtd } from '../../lib/honorExport';
 import { Page, Card, Button, Icon, Loading, Empty, Modal, useToast } from '../../components/ui';
 import { rp, maskRek } from './Honor';
 
@@ -145,6 +145,7 @@ export default function HonorDetail() {
     const { error } = await supabase.from('honor_kegiatan').update(row).eq('id', id);
     setBusy(false);
     if (error) return toast(errMsg(error), 'err');
+    saveTtd(row);  // remember bendahara/PPK/tempat for the next kegiatan
     setHead(null); load();
   }
   async function deleteKegiatan() {
