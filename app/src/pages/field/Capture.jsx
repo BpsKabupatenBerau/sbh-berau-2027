@@ -131,12 +131,16 @@ export default function Capture({ kind }) {
               <Button busy={busy} icon="upload" className="mt block" onClick={send}>{cur ? 'Kirim & ganti foto lama' : 'Kirim foto'}</Button>
             </>
           ) : (
-            <label className="drop mt">
-              <Icon name="camera" size={40} />
-              <b>{cur ? `Ganti foto ${cfg.word}` : `Ambil foto ${cfg.word}`}</b>
-              <small>Dari kamera atau galeri/WhatsApp · lokasi &amp; waktu dicatat otomatis bila tersedia</small>
-              <input ref={fileRef} type="file" accept="image/*" onChange={onFile} hidden />
-            </label>
+            <>
+              <h2 className="sec">{cur ? `Ganti foto ${cfg.word}` : `Ambil foto ${cfg.word}`}</h2>
+              <div className="two-act">
+                <label className="drop"><Icon name="camera" size={32} /><b>Kamera</b><small>Foto langsung · bisa putar depan/belakang</small>
+                  <input type="file" accept="image/*" capture="environment" onChange={onFile} hidden /></label>
+                <label className="drop"><Icon name="upload" size={32} /><b>Galeri</b><small>Dari galeri / WhatsApp</small>
+                  <input type="file" accept="image/*" onChange={onFile} hidden /></label>
+              </div>
+              <p className="hint center">Lokasi &amp; waktu dicatat otomatis bila tersedia.</p>
+            </>
           )}
           {shot && <input ref={fileRef} type="file" accept="image/*" onChange={onFile} hidden />}
           {busy && !shot && <Loading text="Memproses foto…" />}
