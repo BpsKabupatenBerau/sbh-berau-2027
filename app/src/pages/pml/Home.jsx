@@ -65,9 +65,19 @@ export default function PmlHome() {
           <div className="task-tx"><b>Pengawasan</b><span>1 foto per ruta per bulan</span></div>
           <Icon name="right" className="task-arw" />
         </Card>
+        <Card className="task" onClick={() => nav('/bl')}>
+          <div className="task-ic"><Icon name="file" size={24} /></div>
+          <div className="task-tx"><b>BL</b><span>Unggah BL per ruta — bulanan</span></div>
+          <Icon name="right" className="task-arw" />
+        </Card>
+        <Card className="task" onClick={() => nav('/hr')}>
+          <div className="task-ic"><Icon name="inbox" size={24} /></div>
+          <div className="task-tx"><b>HR</b><span>Unggah HR per ruta — triwulanan</span></div>
+          <Icon name="right" className="task-arw" />
+        </Card>
         <Card className="task" onClick={() => nav('/usulan')}>
           <div className="task-ic"><Icon name="send" size={24} /></div>
-          <div className="task-tx"><b>Usulan Komoditas</b><span>Komoditas / kualitas baru</span></div>
+          <div className="task-tx"><b>Usulan Kualitas</b><span>Usulkan kualitas baru</span></div>
           <Icon name="right" className="task-arw" />
         </Card>
         <Card className="task" onClick={() => nav('/surat-tugas')}>

@@ -1,33 +1,32 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase, errMsg } from '../../lib/supabase';
 import { fmtDateTime } from '../../lib/period';
 import { Page, Card, Button, Icon, Loading, Empty, useToast } from '../../components/ui';
 import '../public/Public.css';
 
-// PML proposes a new komoditas (each under its OWN kelompok) or a new kualitas (under an existing komoditas).
+// PML proposes a NEW kualitas: drill down Kelompok -> Subkelompok -> Kelas -> Komoditas, then name the new kualitas.
 export default function Usulan() {
   const toast = useToast();
   const [nksList, setNksList] = useState(null);
   const [kelompok, setKelompok] = useState([]);
   const [mine, setMine] = useState([]);
-  const [jenis, setJenis] = useState('komoditas_baru');
   const [nks, setNks] = useState('');
 
-  // komoditas_baru: a cart where each entry keeps its own kelompok
-  const [kat, setKat] = useState(null);
+  // cascade selections + option lists
+  const [kel, setKel] = useState('');       // kelompok kode (2)
+  const [sub, setSub] = useState('');       // subkelompok kode (3)
+  const [kls, setKls] = useState('');       // kelas kode (4)
+  const [kom, setKom] = useState(null);     // { kode (7), nama }
+  const [subs, setSubs] = useState([]);
+  const [klsList, setKlsList] = useState([]);
+  const [koms, setKoms] = useState([]);
+  const [loadingLvl, setLoadingLvl] = useState('');
+
+  // proposed kualitas
   const [name, setName] = useState('');
-  const [cart, setCart] = useState([]);   // [{ kode, nama, text }]
-
-  // kualitas_baru: one komoditas + many kualitas names
-  const [kom, setKom] = useState(null);
-  const [komQuery, setKomQuery] = useState('');
-  const [komHits, setKomHits] = useState([]);
-  const [openKom, setOpenKom] = useState(false);
-  const [items, setItems] = useState(['']);
-  const [dups, setDups] = useState({});
-
+  const [cart, setCart] = useState([]);     // [text]
+  const [dup, setDup] = useState(null);
   const [busy, setBusy] = useState(false);
-  const komTimer = useRef();
 
   async function loadMine() {
     const { data } = await supabase.from('usulan').select('*').order('created_at', { ascending: false }).limit(100);
@@ -50,175 +49,112 @@ export default function Usulan() {
     loadMine();
   }, []); // eslint-disable-line
 
-  const reset = () => { setKat(null); setName(''); setCart([]); setKom(null); setKomQuery(''); setKomHits([]); setItems(['']); setDups({}); };
-
-  /* ---------- komoditas_baru cart ---------- */
-  function addToCart() {
-    if (!kat) return toast('Pilih kategori (kelompok) dulu', 'err');
-    const text = name.trim();
-    if (!text) return toast('Ketik nama komoditas dulu', 'err');
-    setCart((c) => [...c, { kode: kat.kode, nama: kat.nama, text }]);
-    setName('');
+  async function rpc(fn, arg, setter, lvl) {
+    setLoadingLvl(lvl); setter([]);
+    const { data, error } = await supabase.rpc(fn, arg);
+    setLoadingLvl('');
+    if (error) return toast(errMsg(error), 'err');
+    setter(data || []);
   }
+  // cascade handlers (each resets everything below it)
+  function pickKelompok(v) { setKel(v); setSub(''); setKls(''); setKom(null); setKlsList([]); setKoms([]); resetKualitas(); if (v) rpc('komoditas_subkelompok', { p_kelompok: v }, setSubs, 'sub'); else setSubs([]); }
+  function pickSub(v) { setSub(v); setKls(''); setKom(null); setKoms([]); resetKualitas(); if (v) rpc('komoditas_kelas', { p_subkelompok: v }, setKlsList, 'kls'); else setKlsList([]); }
+  function pickKelas(v) { setKls(v); setKom(null); resetKualitas(); if (v) rpc('komoditas_by_kelas', { p_kelas: v }, setKoms, 'kom'); else setKoms([]); }
+  function pickKom(kode) { const k = koms.find((x) => x.kode === kode); setKom(k || null); resetKualitas(); }
+  function resetKualitas() { setName(''); setCart([]); setDup(null); }
 
-  /* ---------- kualitas_baru combo ---------- */
-  function onKomQuery(v) {
-    setKomQuery(v); setKom(null); setOpenKom(true);
-    clearTimeout(komTimer.current);
-    const words = v.replace(/[%*,()."'\\:]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 5);
-    if (words.join('').length < 2) { setKomHits([]); return; }
-    const tree = `and(${words.map((w) => (/^\d+$/.test(w) ? `kode_komoditas.ilike.${w}*` : `nama_komoditas.ilike.*${w}*`)).join(',')})`;
-    komTimer.current = setTimeout(async () => {
-      const { data } = await supabase.from('komoditas').select('kode_komoditas, nama_komoditas, kelompok')
-        .or(tree).order('kode_komoditas').limit(300);
-      const seen = new Set(); const uniq = [];
-      (data || []).forEach((d) => { if (!seen.has(d.kode_komoditas)) { seen.add(d.kode_komoditas); uniq.push(d); } });
-      setKomHits(uniq.slice(0, 30));
-    }, 250);
-  }
-  async function checkDup(i, v) {
+  async function checkDup(v) {
     const t = v.trim();
-    if (!kom || t.length < 2) { setDups((d) => ({ ...d, [i]: null })); return; }
+    if (!kom || t.length < 2) { setDup(null); return; }
     const { data } = await supabase.from('komoditas').select('kode_kualitas, nama_kualitas')
-      .eq('kode_komoditas', kom.kode_komoditas).ilike('nama_kualitas', t).limit(1);
-    setDups((d) => ({ ...d, [i]: data?.[0] || null }));
+      .eq('kode_komoditas', kom.kode).ilike('nama_kualitas', t).limit(1);
+    setDup(data?.[0] || null);
   }
-  const setItem = (i, v) => { setItems((a) => a.map((x, j) => (j === i ? v : x))); checkDup(i, v); };
+  function addToCart() {
+    const t = name.trim();
+    if (!t) return;
+    setCart((c) => (c.some((x) => x.toLowerCase() === t.toLowerCase()) ? c : [...c, t]));
+    setName(''); setDup(null);
+  }
 
   async function submit() {
     if (!nks) return toast('Pilih NKS dulu', 'err');
+    if (!kom) return toast('Pilih komoditas dulu', 'err');
+    const all = [...cart];
+    if (name.trim()) all.push(name.trim());
+    if (!all.length) return toast('Isi minimal satu kualitas', 'err');
     setBusy(true);
-    try {
-      let added = 0, tw;
-      if (jenis === 'komoditas_baru') {
-        // include a typed-but-not-yet-added entry so nothing is lost
-        const all = [...cart];
-        if (kat && name.trim()) all.push({ kode: kat.kode, nama: kat.nama, text: name.trim() });
-        if (!all.length) { setBusy(false); return toast('Tambahkan minimal satu komoditas', 'err'); }
-        // group by kelompok so each proposal keeps its own category
-        const groups = {};
-        all.forEach((x) => { (groups[x.kode] ||= []).push(x.text); });
-        for (const [kode, texts] of Object.entries(groups)) {
-          const { data, error } = await supabase.rpc('submit_usulan', { payload: { nks, jenis: 'komoditas_baru', items: texts, kelompok_kode: kode } });
-          if (error) throw error;
-          added += data.added; tw = data.triwulan;
-        }
-      } else {
-        if (!kom) { setBusy(false); return toast('Pilih komoditas dulu', 'err'); }
-        const clean = items.map((x) => x.trim()).filter(Boolean);
-        if (!clean.length) { setBusy(false); return toast('Isi minimal satu kualitas', 'err'); }
-        const { data, error } = await supabase.rpc('submit_usulan', { payload: {
-          nks, jenis: 'kualitas_baru', items: clean, kode_komoditas: kom.kode_komoditas, nama_komoditas: kom.nama_komoditas } });
-        if (error) throw error;
-        added = data.added; tw = data.triwulan;
-      }
-      toast(`${added} usulan terkirim (Triwulan ${tw})`, 'ok');
-      reset(); loadMine();
-    } catch (e) { toast(errMsg(e), 'err'); }
+    const { data, error } = await supabase.rpc('submit_usulan', { payload: {
+      nks, jenis: 'kualitas_baru', items: all, kode_komoditas: kom.kode, nama_komoditas: kom.nama } });
     setBusy(false);
+    if (error) return toast(errMsg(error), 'err');
+    toast(`${data.added} usulan terkirim (Triwulan ${data.triwulan})`, 'ok');
+    setKel(''); setSub(''); setKls(''); setKom(null); setSubs([]); setKlsList([]); setKoms([]); resetKualitas();
+    loadMine();
   }
 
-  if (!nksList) return <Page title="Usulan Komoditas"><Loading /></Page>;
+  if (!nksList) return <Page title="Usulan Kualitas"><Loading /></Page>;
   const sel = nksList.find((x) => x.nks === nks);
-  const katShort = (nm) => String(nm || '').split(',')[0].split(' ').slice(0, 2).join(' ');
-  const canSend = jenis === 'komoditas_baru'
-    ? (cart.length > 0 || (kat && name.trim()))
-    : (kom && items.some((x) => x.trim()));
+  const ph = (loading) => (loading ? 'Memuat…' : '— pilih —');
 
   return (
-    <Page title="Usulan Komoditas" subtitle="Komoditas atau kualitas baru">
+    <Page title="Usulan Kualitas" subtitle="Usulkan kualitas baru untuk komoditas yang sudah ada">
       {!nksList.length ? <Empty icon="map" title="Belum ada NKS">Admin belum menugaskan NKS ke Anda.</Empty> : (
-        <>
-          <div className="seg-full">
-            <button className={jenis === 'komoditas_baru' ? 'on' : ''} onClick={() => { setJenis('komoditas_baru'); reset(); }}>Komoditas baru</button>
-            <button className={jenis === 'kualitas_baru' ? 'on' : ''} onClick={() => { setJenis('kualitas_baru'); reset(); }}>Kualitas baru</button>
-          </div>
-          <div className="form">
-            <label>NKS
-              <select value={nks} onChange={(e) => setNks(e.target.value)}>
-                <option value="">— pilih NKS —</option>
-                {nksList.map((n) => <option key={n.nks} value={n.nks}>{n.nks} · {n.desa}</option>)}
+        <div className="form">
+          <label>NKS
+            <select value={nks} onChange={(e) => setNks(e.target.value)}>
+              <option value="">— pilih NKS —</option>
+              {nksList.map((n) => <option key={n.nks} value={n.nks}>{n.nks} · {n.desa}</option>)}
+            </select></label>
+          {sel && <small className="muted" style={{ marginTop: -8 }}>SLS {sel.sls}/{sel.sub} · PPL {sel.ppl || '—'}</small>}
+
+          <div className="form grid2">
+            <label>Kelompok
+              <select value={kel} onChange={(e) => pickKelompok(e.target.value)}>
+                <option value="">{kelompok.length ? '— pilih kelompok —' : 'Master belum diimpor'}</option>
+                {kelompok.map((k) => <option key={k.kode} value={k.kode}>{k.kode} · {k.nama}</option>)}
               </select></label>
-            {sel && <small className="muted" style={{ marginTop: -8 }}>SLS {sel.sls}/{sel.sub} · PPL {sel.ppl || '—'}</small>}
-
-            {jenis === 'komoditas_baru' ? (
-              <>
-                <div>
-                  <label>Kategori (Kelompok)</label>
-                  <div className="kat-grid" style={{ marginTop: 6 }}>
-                    {kelompok.map((k) => (
-                      <button key={k.kode} type="button" className={`kat ${kat?.kode === k.kode ? 'on' : ''}`} onClick={() => setKat(k)}>
-                        <span className="kk">{k.kode}</span><span>{k.nama}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {!kelompok.length && <div className="notice-empty mt">Master komoditas belum diimpor admin.</div>}
-                </div>
-                {kat && (
-                  <div>
-                    <label>Nama komoditas yang diusulkan <small className="muted">— kategori: {kat.kode} · {katShort(kat.nama)}</small></label>
-                    <div className="kom-row" style={{ marginTop: 6 }}>
-                      <input value={name} maxLength={200} placeholder="mis. PIL IMBOST" autoComplete="off"
-                             onChange={(e) => setName(e.target.value)}
-                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addToCart(); } }} />
-                      <button type="button" className="add-kom" style={{ width: 'auto', whiteSpace: 'nowrap' }} onClick={addToCart}>+ Tambah ke daftar</button>
-                    </div>
-                  </div>
-                )}
-                {cart.length > 0 && (
-                  <div>
-                    <label>Daftar usulan ({cart.length})</label>
-                    <div className="usul-cart" style={{ marginTop: 6 }}>
-                      {cart.map((c, i) => (
-                        <div key={i} className="usul-item">
-                          <span className="kk">{c.kode}</span>
-                          <span className="usul-tx"><b>{c.text}</b><small>{katShort(c.nama)}</small></span>
-                          <button type="button" className="usul-del" aria-label="Hapus" onClick={() => setCart((a) => a.filter((_, j) => j !== i))}>×</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <label>Komoditas (yang sudah ada)
-                  <div className="combo">
-                    <input value={komQuery} placeholder="Cari komoditas, mis. BERAS…" autoComplete="off"
-                      onChange={(e) => onKomQuery(e.target.value)} onFocus={() => setOpenKom(true)}
-                      onBlur={() => setTimeout(() => setOpenKom(false), 150)} />
-                    <div className={`combo-list ${openKom && komHits.length ? 'open' : ''}`}>
-                      {komHits.map((k) => (
-                        <div key={k.kode_komoditas} className="opt" onMouseDown={() => { setKom(k); setKomQuery(k.nama_komoditas); setOpenKom(false); setItems(['']); setDups({}); }}>
-                          <b>{k.nama_komoditas}</b><small>{k.kode_komoditas} · {k.kelompok}</small>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </label>
-                {kom && (
-                  <div>
-                    <label>Kualitas baru untuk {kom.nama_komoditas}</label>
-                    <div style={{ marginTop: 6 }}>
-                      {items.map((v, i) => (
-                        <div key={i}>
-                          <div className="kom-row">
-                            <input value={v} maxLength={200} placeholder="Ketik nama kualitas…" onChange={(e) => setItem(i, e.target.value)} />
-                            {items.length > 1 && <button type="button" className="kom-del" onClick={() => { setItems((a) => a.filter((_, j) => j !== i)); setDups({}); }}>×</button>}
-                          </div>
-                          {dups[i] && <div className="dupwarn">Sudah ada di master: <b>{dups[i].kode_kualitas}</b> — {dups[i].nama_kualitas}.</div>}
-                        </div>
-                      ))}
-                      <button type="button" className="add-kom" onClick={() => setItems((a) => [...a, ''])}>+ Tambah kualitas</button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {canSend && <Button className="block mt" busy={busy} icon="send" onClick={submit}>Kirim usulan</Button>}
+            <label>Subkelompok
+              <select value={sub} onChange={(e) => pickSub(e.target.value)} disabled={!kel || loadingLvl === 'sub'}>
+                <option value="">{ph(loadingLvl === 'sub')}</option>
+                {subs.map((s) => <option key={s.kode} value={s.kode}>{s.kode} · {s.nama}</option>)}
+              </select></label>
+            <label>Kelas
+              <select value={kls} onChange={(e) => pickKelas(e.target.value)} disabled={!sub || loadingLvl === 'kls'}>
+                <option value="">{ph(loadingLvl === 'kls')}</option>
+                {klsList.map((c) => <option key={c.kode} value={c.kode}>{c.kode} · {c.nama}</option>)}
+              </select></label>
+            <label>Komoditas
+              <select value={kom?.kode || ''} onChange={(e) => pickKom(e.target.value)} disabled={!kls || loadingLvl === 'kom'}>
+                <option value="">{ph(loadingLvl === 'kom')}</option>
+                {koms.map((k) => <option key={k.kode} value={k.kode}>{k.kode} · {k.nama}</option>)}
+              </select></label>
           </div>
-        </>
+
+          {kom && (
+            <div>
+              <label>Nama kualitas baru untuk <b>{kom.nama}</b></label>
+              <div className="kom-row" style={{ marginTop: 6 }}>
+                <input value={name} maxLength={200} placeholder="mis. IR 64 SUPER" autoComplete="off"
+                       onChange={(e) => { setName(e.target.value); checkDup(e.target.value); }}
+                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addToCart(); } }} />
+                <button type="button" className="add-kom" style={{ width: 'auto', whiteSpace: 'nowrap' }} onClick={addToCart}>+ Tambah</button>
+              </div>
+              {dup && <div className="dupwarn">Sudah ada di master: <b>{dup.kode_kualitas}</b> — {dup.nama_kualitas}.</div>}
+              {cart.length > 0 && (
+                <div className="usul-cart" style={{ marginTop: 8 }}>
+                  {cart.map((c, i) => (
+                    <div key={i} className="usul-item">
+                      <span className="usul-tx"><b>{c}</b><small>{kom.kode} · {kom.nama}</small></span>
+                      <button type="button" className="usul-del" aria-label="Hapus" onClick={() => setCart((a) => a.filter((_, j) => j !== i))}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button className="block mt" busy={busy} icon="send" disabled={!cart.length && !name.trim()} onClick={submit}>Kirim usulan</Button>
+            </div>
+          )}
+        </div>
       )}
 
       <h2 className="sec">Usulan saya</h2>

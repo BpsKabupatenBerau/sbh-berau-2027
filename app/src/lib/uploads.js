@@ -12,6 +12,7 @@ const EVT = 'spkrt-queue';
 export const KIND_LABEL = {
   kunjungan: 'Pendataan', pengawasan: 'Pengawasan', surat_tugas: 'Surat Tugas',
   stnk: 'STNK', kendaraan: 'Foto Kendaraan', supervisi: 'Supervisi',
+  bl: 'BL', hr: 'HR',
 };
 
 const rid = () => (crypto.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 10);
@@ -25,6 +26,8 @@ export function buildPath(uid, kind, meta, mime) {
   if (kind === 'kunjungan') return `${uid}/pendataan/${ym}-p${meta.part}/${meta.nks}_${meta.no_urut}_${rid()}.${ext}`;
   if (kind === 'pengawasan') return `${uid}/pengawasan/${ym}/${meta.nks}_${meta.no_urut}_${rid()}.${ext}`;
   if (kind === 'surat_tugas') return `${uid}/surat_tugas/${ym}/${rid()}.${ext}`;
+  if (kind === 'bl') return `${uid}/bl/${meta.year}-${pad2(meta.month)}/${meta.nks}_${meta.no_urut}_${rid()}.${ext}`;
+  if (kind === 'hr') return `${uid}/hr/${meta.year}-TW${meta.part}/${meta.nks}_${meta.no_urut}_${rid()}.${ext}`;
   return `${uid}/${kind}/${rid()}.${ext}`;
 }
 
@@ -32,6 +35,8 @@ function jobKey(kind, m) {
   if (kind === 'kunjungan') return `k:${m.ruta_id}:${m.year}:${m.month}:${m.part}`;
   if (kind === 'pengawasan') return `w:${m.ruta_id}:${m.year}:${m.month}`;
   if (kind === 'surat_tugas') return `st:${m.year}:${m.month}`;
+  if (kind === 'bl') return `bl:${m.ruta_id}:${m.year}:${m.month}`;
+  if (kind === 'hr') return `hr:${m.ruta_id}:${m.year}:${m.part}`;
   return kind;
 }
 

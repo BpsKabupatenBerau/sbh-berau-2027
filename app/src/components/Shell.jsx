@@ -16,6 +16,8 @@ export const NAV = {
   pml: [
     { to: '/', icon: 'home', label: 'Beranda', end: true },
     { to: '/pengawasan', icon: 'shield', label: 'Pengawasan' },
+    { to: '/bl', icon: 'file', label: 'BL' },
+    { to: '/hr', icon: 'inbox', label: 'HR' },
     { to: '/usulan', icon: 'send', label: 'Usulan' },
     { to: '/rekap-bl', icon: 'layers', label: 'Rekap BL' },
     { to: '/akun', icon: 'user', label: 'Akun' },

@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase, errMsg } from '../../lib/supabase';
-import { currentPeriod, shiftPeriod, periodTitle, periodRangeLabel, inPeriod, monthLabel, fmtDateTime, fmtDate } from '../../lib/period';
+import { currentPeriod, shiftPeriod, periodTitle, periodRangeLabel, inPeriod, monthLabel, fmtDateTime, fmtDate, TRIWULAN } from '../../lib/period';
 import { mapsLink } from '../../lib/media';
 import { signedUrls, KIND_LABEL } from '../../lib/uploads';
 import { Page, Card, Chip, Button, Icon, Loading, Empty, Modal, SignedImg, Lightbox, useToast } from '../../components/ui';
 
-const KINDS = ['kunjungan', 'pengawasan', 'surat_tugas', 'stnk', 'kendaraan'];
+const KINDS = ['kunjungan', 'pengawasan', 'bl', 'hr', 'surat_tugas', 'stnk', 'kendaraan'];
 const STATUSES = [['pending', 'Menunggu'], ['rejected', 'Ditolak'], ['approved', 'Disetujui'], ['all', 'Semua']];
 const REASONS = {
   kunjungan: ['Foto buram / gelap', 'Rumah/ruta tidak terlihat', 'Bukan di lokasi ruta', 'Foto bukan periode ini'],
@@ -13,6 +13,8 @@ const REASONS = {
   surat_tugas: ['Berkas tidak terbaca', 'Belum ditandatangani', 'Halaman tidak lengkap', 'Bukan surat tugas bulan ini'],
   stnk: ['STNK tidak terbaca', 'STNK sudah habis masa berlaku', 'Nomor polisi tidak sama', 'Halaman tidak lengkap'],
   kendaraan: ['Pelat nomor tidak terlihat', 'Kendaraan tidak sesuai STNK', 'Foto buram / gelap'],
+  bl: ['Berkas tidak terbaca', 'Halaman tidak lengkap', 'Bukan BL ruta ini', 'Bukan bulan ini'],
+  hr: ['Berkas tidak terbaca', 'Halaman tidak lengkap', 'Bukan HR ruta ini', 'Bukan triwulan ini'],
 };
 const PAGE = 48;
 const hasPeriod = (k) => k === 'kunjungan' || k === 'pengawasan' || k === 'surat_tugas';
@@ -53,7 +55,7 @@ export default function Review() {
       q = q.eq('period_year', per.year).eq('period_month', per.month);
       if (kind === 'kunjungan') q = q.eq('period_part', per.part);
     }
-    if (nksQ.trim() && (kind === 'kunjungan' || kind === 'pengawasan')) q = q.ilike('nks', `${nksQ.trim()}%`);
+    if (nksQ.trim() && ['kunjungan', 'pengawasan', 'bl', 'hr'].includes(kind)) q = q.ilike('nks', `${nksQ.trim()}%`);
     const { data, error } = await q;
     if (error) { toast(errMsg(error), 'err'); setItems([]); return; }
     const next = append ? [...items, ...data] : data;
@@ -96,7 +98,7 @@ export default function Review() {
   const role = (id) => maps.people[id]?.role?.toUpperCase() || '';
 
   const title = (u) => {
-    if (u.kind === 'kunjungan' || u.kind === 'pengawasan') {
+    if (['kunjungan', 'pengawasan', 'bl', 'hr'].includes(u.kind)) {
       const r = maps.ruta[u.ruta_id];
       return `NKS ${u.nks}${r ? ` · Ruta ${r.no_urut} ${r.nama_krt}` : ''}`;
     }
@@ -105,6 +107,8 @@ export default function Review() {
   const subline = (u) => {
     if (u.kind === 'kunjungan') return `${periodTitle({ year: u.period_year, month: u.period_month, part: u.period_part })} · oleh ${who(u.user_id)}`;
     if (u.kind === 'pengawasan') return `${monthLabel(u.period_year, u.period_month)} · oleh ${who(u.user_id)}`;
+    if (u.kind === 'bl') return `BL ${monthLabel(u.period_year, u.period_month)} · oleh ${who(u.user_id)}`;
+    if (u.kind === 'hr') return `HR Triwulan ${TRIWULAN[(u.period_part || 1) - 1]} ${u.period_year} · oleh ${who(u.user_id)}`;
     if (u.kind === 'surat_tugas') return `${monthLabel(u.period_year, u.period_month)} · No. ${u.meta?.nomor || '—'}`;
     const m = u.meta || {};
     return [m.nomor_polisi, m.jenis, m.berlaku && `berlaku s.d. ${fmtDate(m.berlaku)}`].filter(Boolean).join(' · ');

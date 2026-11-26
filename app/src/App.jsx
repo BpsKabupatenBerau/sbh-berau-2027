@@ -18,6 +18,7 @@ import Kendaraan from './pages/field/Kendaraan';
 const NksDetail = lazy(() => import('./pages/NksDetail'));
 const PmlHome = lazy(() => import('./pages/pml/Home'));
 const PmlUsulan = lazy(() => import('./pages/pml/Usulan'));
+const RutaDocs = lazy(() => import('./pages/pml/RutaDocs'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const Review = lazy(() => import('./pages/admin/Review'));
 const Samples = lazy(() => import('./pages/admin/Samples'));
@@ -53,6 +54,8 @@ const ROUTES = {
       <Route path="/pengawasan/:id" element={<Capture kind="pengawasan" />} />
       <Route path="/nks/:nks" element={<NksDetail />} />
       <Route path="/usulan" element={<PmlUsulan />} />
+      <Route path="/bl" element={<RutaDocs kind="bl" />} />
+      <Route path="/hr" element={<RutaDocs kind="hr" />} />
       <Route path="/rekap-bl" element={<PmlRekapBL />} />
       <Route path="/surat-tugas" element={<SuratTugas />} />
       <Route path="/kendaraan" element={<Kendaraan />} />

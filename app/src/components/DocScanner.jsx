@@ -36,6 +36,26 @@ export default function DocScanner({ open, onClose, onDone, title = 'Scan dokume
     } catch { toast('Foto tidak dapat dibaca', 'err'); }
     setBusy('');
   }
+
+  // Gallery/WhatsApp: pick several images at once; each becomes a page (current filter, no crop step).
+  async function onGallery(e) {
+    const files = [...(e.target.files || [])]; e.target.value = '';
+    if (!files.length) return;
+    const slots = maxPages - pages.length;
+    const use = files.slice(0, Math.max(slots, 0));
+    setBusy(`Memproses ${use.length} foto…`);
+    let failed = 0;
+    for (const f of use) {
+      try {
+        const out = applyFilter(await loadToCanvas(f), mode);
+        const blob = await canvasToBlob(out, mode === 'doc' ? 0.72 : 0.8);
+        setPages((p) => [...p, { blob, url: URL.createObjectURL(blob), w: out.width, h: out.height }]);
+      } catch { failed++; }
+    }
+    setBusy('');
+    if (files.length > slots) toast(`Maksimal ${maxPages} halaman — ${files.length - slots} foto dilewati`, 'err');
+    else if (failed) toast(`${failed} foto tidak dapat dibaca`, 'err');
+  }
   async function openEditor(canvas) {
     const blob = await canvasToBlob(canvas, 0.85);
     if (edit?.url) URL.revokeObjectURL(edit.url);
@@ -135,7 +155,7 @@ export default function DocScanner({ open, onClose, onDone, title = 'Scan dokume
           <div className="scan-foot">
             {pages.length < maxPages && (
               <>
-                <button className="btn btn-ghost" onClick={() => galRef.current.click()} title="Dari galeri"><Icon name="upload" size={18} /></button>
+                <button className="btn btn-ghost" onClick={() => galRef.current.click()} title="Dari galeri (bisa pilih banyak)"><Icon name="upload" size={18} /></button>
                 <button className="btn btn-ghost grow" onClick={() => camRef.current.click()}><Icon name="camera" size={18} /> <span>{pages.length ? 'Tambah halaman' : 'Foto halaman 1'}</span></button>
               </>
             )}
@@ -144,7 +164,7 @@ export default function DocScanner({ open, onClose, onDone, title = 'Scan dokume
         </>
       )}
       <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={onPick} />
-      <input ref={galRef} type="file" accept="image/*" hidden onChange={onPick} />
+      <input ref={galRef} type="file" accept="image/*" multiple hidden onChange={onGallery} />
       {busy && <div className="scan-busy"><Spinner /> {busy}</div>}
     </div>
   );
