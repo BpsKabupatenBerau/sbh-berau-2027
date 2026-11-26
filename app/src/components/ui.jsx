@@ -57,6 +57,7 @@ export const STATUS = {
   pending:  ['Menunggu', 'warn'],
   approved: ['Disetujui', 'ok'],
   rejected: ['Ditolak', 'err'],
+  di_kantor: ['Sudah di kantor', 'info'],
 };
 export function Chip({ status, children }) {
   const [label, tone] = STATUS[status] || [status, 'idle'];

@@ -6,7 +6,8 @@ import { signedUrls, KIND_LABEL } from '../../lib/uploads';
 import { Page, Card, Chip, Button, Icon, Loading, Empty, Modal, SignedImg, Lightbox, useToast } from '../../components/ui';
 
 const KINDS = ['kunjungan', 'pengawasan', 'bl', 'hr', 'surat_tugas', 'stnk', 'kendaraan'];
-const STATUSES = [['pending', 'Menunggu'], ['rejected', 'Ditolak'], ['approved', 'Disetujui'], ['all', 'Semua']];
+const STATUSES = [['pending', 'Menunggu'], ['rejected', 'Ditolak'], ['approved', 'Disetujui'], ['di_kantor', 'Di kantor'], ['all', 'Semua']];
+const TERMINAL = (s) => s === 'approved' || s === 'di_kantor';
 const REASONS = {
   kunjungan: ['Foto buram / gelap', 'Rumah/ruta tidak terlihat', 'Bukan di lokasi ruta', 'Foto bukan periode ini'],
   pengawasan: ['Foto buram / gelap', 'PML tidak terlihat di lokasi', 'Bukan di lokasi ruta', 'Foto bukan bulan ini'],
@@ -85,7 +86,8 @@ export default function Review() {
     const { data, error } = await supabase.rpc('review_uploads', { p_ids: ids, p_status: st, p_note: note });
     setBusy(false);
     if (error) return toast(errMsg(error), 'err');
-    toast(`${data} berkas ${st === 'approved' ? 'disetujui' : st === 'rejected' ? 'ditolak' : 'dikembalikan'}`, st === 'rejected' ? 'dark' : 'ok');
+    const verb = { approved: 'disetujui', rejected: 'ditolak', di_kantor: 'ditandai sudah di kantor', pending: 'dikembalikan' }[st] || 'diperbarui';
+    toast(`${data} berkas ${verb}`, st === 'rejected' ? 'dark' : 'ok');
     setSel(new Set()); setReject(null);
     setItems((cur) => (status === 'all' || status === st
       ? cur.map((u) => (ids.includes(u.id) ? { ...u, status: st, review_note: note } : u))
@@ -93,7 +95,7 @@ export default function Review() {
   }
 
   const toggle = (id) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const allIds = (items || []).filter((u) => u.status !== 'approved').map((u) => u.id);
+  const allIds = (items || []).filter((u) => !TERMINAL(u.status)).map((u) => u.id);
   const who = (id) => maps.people[id]?.full_name || maps.people[id]?.username || '…';
   const role = (id) => maps.people[id]?.role?.toUpperCase() || '';
 
@@ -137,7 +139,7 @@ export default function Review() {
       </div>
       {per && kind === 'kunjungan' && <p className="hint">{periodRangeLabel(per)}</p>}
 
-      {items && items.length > 0 && status !== 'approved' && (
+      {items && items.length > 0 && !TERMINAL(status) && (
         <div className="bulkbar">
           <label className="toggle"><input type="checkbox" checked={sel.size > 0 && sel.size === allIds.length}
             onChange={(e) => setSel(e.target.checked ? new Set(allIds) : new Set())} /> Pilih semua ({allIds.length})</label>
@@ -145,6 +147,7 @@ export default function Review() {
             <span className="muted">{sel.size} dipilih</span>
             <Button variant="ok" icon="check" busy={busy} onClick={() => decide([...sel], 'approved')}>Setujui</Button>
             <Button variant="danger" icon="x" onClick={() => setReject({ ids: [...sel], note: '' })}>Tolak</Button>
+            <Button variant="ghost" icon="inbox" busy={busy} onClick={() => decide([...sel], 'di_kantor')}>Sudah di kantor</Button>
           </>}
         </div>
       )}
@@ -175,8 +178,9 @@ export default function Review() {
                   {u.status === 'rejected' && u.review_note && <small className="t-err">“{u.review_note}”</small>}
                 </div>
                 <div className="ract">
-                  {u.status !== 'approved' && <Button variant="ok" icon="check" busy={busy} onClick={() => decide([u.id], 'approved')}>Setujui</Button>}
-                  {u.status !== 'rejected' && <Button variant="danger-ghost" icon="x" onClick={() => setReject({ ids: [u.id], note: '' })}>Tolak</Button>}
+                  {!TERMINAL(u.status) && <Button variant="ok" icon="check" busy={busy} onClick={() => decide([u.id], 'approved')}>Setujui</Button>}
+                  {u.status !== 'rejected' && u.status !== 'di_kantor' && <Button variant="danger-ghost" icon="x" onClick={() => setReject({ ids: [u.id], note: '' })}>Tolak</Button>}
+                  {u.status !== 'di_kantor' && <Button variant="ghost" icon="inbox" busy={busy} onClick={() => decide([u.id], 'di_kantor')}>Di kantor</Button>}
                   {u.status !== 'pending' && <Button variant="ghost" onClick={() => decide([u.id], 'pending')}>Batalkan</Button>}
                 </div>
               </Card>

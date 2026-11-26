@@ -80,7 +80,7 @@ export default function Capture({ kind }) {
   }
 
   if (!ruta) return <Page title="Ruta" back={back}><Loading /></Page>;
-  const locked = cur?.status === 'approved';
+  const locked = cur?.status === 'approved' || cur?.status === 'di_kantor';
   const status = queued ? 'queued' : cur?.status || 'none';
   const sub = isMonthly(kind) ? periodTitle(per) : `${periodTitle(per)} · ${periodRangeLabel(per)}`;
 

@@ -4,7 +4,7 @@ import { fmtDateTime } from '../../lib/period';
 import { Page, Card, Button, Icon, Loading, Empty, useToast } from '../../components/ui';
 import '../public/Public.css';
 
-// PML proposes a NEW kualitas: drill down Kelompok -> Subkelompok -> Kelas -> Komoditas, then name the new kualitas.
+// PML proposes new kualitas: drill Kelompok→Subkelompok→Kelas→Komoditas, stage kualitas for several komoditas, submit all.
 export default function Usulan() {
   const toast = useToast();
   const [nksList, setNksList] = useState(null);
@@ -13,19 +13,19 @@ export default function Usulan() {
   const [nks, setNks] = useState('');
 
   // cascade selections + option lists
-  const [kel, setKel] = useState('');       // kelompok kode (2)
-  const [sub, setSub] = useState('');       // subkelompok kode (3)
-  const [kls, setKls] = useState('');       // kelas kode (4)
-  const [kom, setKom] = useState(null);     // { kode (7), nama }
+  const [kel, setKel] = useState('');
+  const [sub, setSub] = useState('');
+  const [kls, setKls] = useState('');
+  const [kom, setKom] = useState(null);     // { kode, nama }
   const [subs, setSubs] = useState([]);
   const [klsList, setKlsList] = useState([]);
   const [koms, setKoms] = useState([]);
   const [loadingLvl, setLoadingLvl] = useState('');
 
-  // proposed kualitas
+  // staged proposals — survive cascade changes
   const [name, setName] = useState('');
-  const [cart, setCart] = useState([]);     // [text]
   const [dup, setDup] = useState(null);
+  const [cart, setCart] = useState([]);     // [{ komKode, komNama, text }]
   const [busy, setBusy] = useState(false);
 
   async function loadMine() {
@@ -56,12 +56,11 @@ export default function Usulan() {
     if (error) return toast(errMsg(error), 'err');
     setter(data || []);
   }
-  // cascade handlers (each resets everything below it)
-  function pickKelompok(v) { setKel(v); setSub(''); setKls(''); setKom(null); setKlsList([]); setKoms([]); resetKualitas(); if (v) rpc('komoditas_subkelompok', { p_kelompok: v }, setSubs, 'sub'); else setSubs([]); }
-  function pickSub(v) { setSub(v); setKls(''); setKom(null); setKoms([]); resetKualitas(); if (v) rpc('komoditas_kelas', { p_subkelompok: v }, setKlsList, 'kls'); else setKlsList([]); }
-  function pickKelas(v) { setKls(v); setKom(null); resetKualitas(); if (v) rpc('komoditas_by_kelas', { p_kelas: v }, setKoms, 'kom'); else setKoms([]); }
-  function pickKom(kode) { const k = koms.find((x) => x.kode === kode); setKom(k || null); resetKualitas(); }
-  function resetKualitas() { setName(''); setCart([]); setDup(null); }
+  const clearInput = () => { setName(''); setDup(null); };   // NB: does NOT clear the cart
+  function pickKelompok(v) { setKel(v); setSub(''); setKls(''); setKom(null); setKlsList([]); setKoms([]); clearInput(); if (v) rpc('komoditas_subkelompok', { p_kelompok: v }, setSubs, 'sub'); else setSubs([]); }
+  function pickSub(v) { setSub(v); setKls(''); setKom(null); setKoms([]); clearInput(); if (v) rpc('komoditas_kelas', { p_subkelompok: v }, setKlsList, 'kls'); else setKlsList([]); }
+  function pickKelas(v) { setKls(v); setKom(null); clearInput(); if (v) rpc('komoditas_by_kelas', { p_kelas: v }, setKoms, 'kom'); else setKoms([]); }
+  function pickKom(kode) { setKom(koms.find((x) => x.kode === kode) || null); clearInput(); }
 
   async function checkDup(v) {
     const t = v.trim();
@@ -71,26 +70,35 @@ export default function Usulan() {
     setDup(data?.[0] || null);
   }
   function addToCart() {
+    if (!kom) return toast('Pilih komoditas dulu', 'err');
     const t = name.trim();
     if (!t) return;
-    setCart((c) => (c.some((x) => x.toLowerCase() === t.toLowerCase()) ? c : [...c, t]));
-    setName(''); setDup(null);
+    setCart((c) => (c.some((x) => x.komKode === kom.kode && x.text.toLowerCase() === t.toLowerCase())
+      ? c : [...c, { komKode: kom.kode, komNama: kom.nama, text: t }]));
+    clearInput();
   }
 
   async function submit() {
     if (!nks) return toast('Pilih NKS dulu', 'err');
-    if (!kom) return toast('Pilih komoditas dulu', 'err');
     const all = [...cart];
-    if (name.trim()) all.push(name.trim());
-    if (!all.length) return toast('Isi minimal satu kualitas', 'err');
+    if (kom && name.trim()) all.push({ komKode: kom.kode, komNama: kom.nama, text: name.trim() });
+    if (!all.length) return toast('Tambahkan minimal satu kualitas', 'err');
     setBusy(true);
-    const { data, error } = await supabase.rpc('submit_usulan', { payload: {
-      nks, jenis: 'kualitas_baru', items: all, kode_komoditas: kom.kode, nama_komoditas: kom.nama } });
+    try {
+      const groups = {};
+      all.forEach((x) => { (groups[x.komKode] ||= { nama: x.komNama, items: [] }).items.push(x.text); });
+      let added = 0, tw;
+      for (const [kode, g] of Object.entries(groups)) {
+        const { data, error } = await supabase.rpc('submit_usulan', { payload: {
+          nks, jenis: 'kualitas_baru', items: g.items, kode_komoditas: kode, nama_komoditas: g.nama } });
+        if (error) throw error;
+        added += data.added; tw = data.triwulan;
+      }
+      toast(`${added} usulan terkirim (Triwulan ${tw})`, 'ok');
+      setKel(''); setSub(''); setKls(''); setKom(null); setSubs([]); setKlsList([]); setKoms([]); setCart([]); clearInput();
+      loadMine();
+    } catch (e) { toast(errMsg(e), 'err'); }
     setBusy(false);
-    if (error) return toast(errMsg(error), 'err');
-    toast(`${data.added} usulan terkirim (Triwulan ${data.triwulan})`, 'ok');
-    setKel(''); setSub(''); setKls(''); setKom(null); setSubs([]); setKlsList([]); setKoms([]); resetKualitas();
-    loadMine();
   }
 
   if (!nksList) return <Page title="Usulan Kualitas"><Loading /></Page>;
@@ -141,18 +149,25 @@ export default function Usulan() {
                 <button type="button" className="add-kom" style={{ width: 'auto', whiteSpace: 'nowrap' }} onClick={addToCart}>+ Tambah</button>
               </div>
               {dup && <div className="dupwarn">Sudah ada di master: <b>{dup.kode_kualitas}</b> — {dup.nama_kualitas}.</div>}
-              {cart.length > 0 && (
-                <div className="usul-cart" style={{ marginTop: 8 }}>
-                  {cart.map((c, i) => (
-                    <div key={i} className="usul-item">
-                      <span className="usul-tx"><b>{c}</b><small>{kom.kode} · {kom.nama}</small></span>
-                      <button type="button" className="usul-del" aria-label="Hapus" onClick={() => setCart((a) => a.filter((_, j) => j !== i))}>×</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Button className="block mt" busy={busy} icon="send" disabled={!cart.length && !name.trim()} onClick={submit}>Kirim usulan</Button>
+              <p className="hint" style={{ justifyContent: 'flex-start' }}>Bisa ganti kelompok/komoditas lalu tambah lagi — daftar di bawah tetap tersimpan sampai dikirim.</p>
             </div>
+          )}
+
+          {cart.length > 0 && (
+            <div>
+              <label>Daftar usulan ({cart.length})</label>
+              <div className="usul-cart" style={{ marginTop: 6 }}>
+                {cart.map((c, i) => (
+                  <div key={i} className="usul-item">
+                    <span className="usul-tx"><b>{c.text}</b><small>{c.komKode} · {c.komNama}</small></span>
+                    <button type="button" className="usul-del" aria-label="Hapus" onClick={() => setCart((a) => a.filter((_, j) => j !== i))}>×</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(cart.length > 0 || (kom && name.trim())) && (
+            <Button className="block mt" busy={busy} icon="send" onClick={submit}>Kirim usulan</Button>
           )}
         </div>
       )}

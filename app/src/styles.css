@@ -506,3 +506,4 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--brand); cu
 .honor-table td:nth-child(3) .cellin { width: 86px; } .honor-table td:nth-child(6) .cellin { width: 72px; }
 .honor-table td:nth-child(9) .cellin { width: 108px; }
 .honor-table td:nth-child(10) .cellin, .honor-table td:nth-child(11) .cellin { width: 74px; }
+.row .num-di_kantor { background: var(--info-bg); color: var(--info); }

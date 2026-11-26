@@ -19,6 +19,8 @@ export default function RutaDocs({ kind }) {
   const toast = useToast();
   const now = ymNow();
   const nowTw = triwulanOf(now.month);
+  const HR_MONTHS = [3, 6, 9, 12];                 // HR only collected at each quarter-end
+  const hrOpen = kind !== 'hr' || HR_MONTHS.includes(now.month);
   const [per, setPer] = useState(kind === 'bl' ? { year: now.year, month: now.month } : { year: now.year, tw: nowTw });
   const [ruta, setRuta] = useState(null);
   const [ups, setUps] = useState({});
@@ -77,17 +79,19 @@ export default function RutaDocs({ kind }) {
   }
 
   const cur = sel && ups[sel.id];
-  const locked = cur?.status === 'approved';
+  const locked = cur?.status === 'approved' || cur?.status === 'di_kantor';
 
   return (
     <Page title={cfg.title} subtitle={ruta ? `${done} dari ${ruta.length} ruta sudah unggah` : cfg.subtitle}>
       <div className="weekpick monthpick">
-        <button className="icon-btn soft" onClick={() => step(-1)} aria-label="Sebelumnya"><Icon name="left" /></button>
+        <button className="icon-btn soft" onClick={() => step(-1)} disabled={kind === 'hr'} aria-label="Sebelumnya"><Icon name="left" /></button>
         <div className="weekpick-mid"><b>{periodLabel}</b><span>{kind === 'bl' ? '1 BL per ruta per bulan' : '1 HR per ruta per triwulan'}</span></div>
-        <button className="icon-btn soft" onClick={() => step(1)} disabled={atMax} aria-label="Berikutnya"><Icon name="right" /></button>
+        <button className="icon-btn soft" onClick={() => step(1)} disabled={kind === 'hr' || atMax} aria-label="Berikutnya"><Icon name="right" /></button>
       </div>
 
-      {!ruta ? <Loading /> : !ruta.length ? (
+      {!hrOpen ? (
+        <Empty icon="inbox" title="HR belum dibuka">HR hanya dibuka tiap akhir triwulan: <b>Maret, Juni, September, Desember</b>. Silakan kembali pada bulan tersebut.</Empty>
+      ) : !ruta ? <Loading /> : !ruta.length ? (
         <Empty icon="map" title="Belum ada ruta">Hubungi admin untuk penugasan sampel.</Empty>
       ) : groups.map(([nks, g]) => (
         <div key={nks}>
@@ -97,7 +101,7 @@ export default function RutaDocs({ kind }) {
               const u = ups[r.id];
               return (
                 <button key={r.id} className="row" onClick={() => setSel(r)}>
-                  <span className={`num num-${u?.status || 'none'}`}>{u?.status === 'approved' ? '✓' : String(i + 1).padStart(2, '0')}</span>
+                  <span className={`num num-${u?.status || 'none'}`}>{(u?.status === 'approved' || u?.status === 'di_kantor') ? '✓' : String(i + 1).padStart(2, '0')}</span>
                   <span className="row-tx"><b>{r.nama_krt || '(tanpa nama)'}</b><small>No. sampel {r.no_urut}</small></span>
                   <Chip status={u?.status || 'none'} />
                   <Icon name="right" className="row-arw" />
